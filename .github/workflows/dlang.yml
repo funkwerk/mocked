@@ -27,3 +27,6 @@ jobs:
       run: |
         dub build --build=unittest-cov --config=unittest
         ./mocked -s
+        
+    - name: Generate coverage report
+      run: bash <(curl -s https://codecov.io/bash)

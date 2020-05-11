@@ -2,12 +2,11 @@ module mocked.builder;
 
 import std.algorithm;
 import std.array;
-import std.exception;
 import std.conv;
+import std.exception;
+import std.meta;
 import std.traits;
 import std.typecons;
-import tanya.meta.metafunction;
-import tanya.meta.trait : isPolymorphicType;
 
 final class ExpectationViolationError : Error
 {
@@ -113,7 +112,7 @@ struct ExpectationSetup(T, string member)
 {
     enum string name = member;
 
-    alias Overloads = Map!(Overload, __traits(getOverloads, T, member));
+    alias Overloads = staticMap!(Overload, __traits(getOverloads, T, member));
 
     Overloads overloads;
 
@@ -141,45 +140,17 @@ struct ExpectationSetup(T, string member)
     }
 }
 
-template VirtualMethods(T)
-{
-    private template isVirtualMethod(string member)
-    {
-        enum bool isVirtualMethod =
-            __traits(isVirtualMethod, __traits(getMember, T, member));
-    }
-    alias VirtualMethods = Filter!(isVirtualMethod, __traits(allMembers, T));
-}
-
-template parameters(Call)
-{
-    template join(string accumulator, Args...)
-    {
-        static if (Args.length == 0)
-        {
-            enum string join = accumulator;
-        }
-        else
-        {
-            alias fqn = fullyQualifiedName!(Args[0].Seq[0]);
-            enum string join = join!(accumulator ~ fqn ~ " " ~ Args[0][1] ~ ", ", Args[1 .. $]);
-        }
-    }
-    alias ParameterList = ZipWith!(Pack, Pack!(Call.Arguments), Pack!(Call.ArgumentIdentifiers));
-
-    enum parameters = join!("", ParameterList);
-}
-
 struct Builder(T)
-if (isPolymorphicType!T)
+if (is(T == class) || is(T == interface))
 {
-    private alias MemberExpectationSetup = ApplyLeft!(ExpectationSetup, T);
-    private alias VirtualMethods = .VirtualMethods!T;
+    private alias VirtualMethods = Filter!(ApplyLeft!(isVirtualMethod, T), __traits(allMembers, T));
 
-    alias ExpectationTuple = Map!(MemberExpectationSetup, VirtualMethods);
+    alias ExpectationTuple = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
 
     static foreach (i, member; VirtualMethods)
     {
         mixin("ExpectationTuple[i] " ~ member ~ ";");
     }
 }
+
+private enum isVirtualMethod(T, string member) = __traits(isVirtualMethod, __traits(getMember, T, member));

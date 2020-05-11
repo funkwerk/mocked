@@ -3,6 +3,7 @@ module mocked.mocker;
 import mocked.builder;
 import mocked.rt;
 import std.conv;
+import std.format : format;
 import std.traits;
 
 // Implementation
@@ -16,19 +17,31 @@ auto mock(T)()
         {
             static foreach (i, Overload; expectation.Overloads)
             {
-                mixin("override " ~ fullyQualifiedName!(Overload.Return)
-                        ~ " " ~ expectation.name
-                        ~ "("
-                        ~ parameters!Overload
-                        ~ ") { if (builder." ~ expectation.name ~ ".overloads["
-                        ~ i.to!string ~ "].empty) {return super."
-                        ~ expectation.name ~ "(" ~ arguments!Overload ~ "); } "
-                        ~ argumentValidation!(expectation.name, i, expectation.Overloads)
-                        ~ "auto ret = builder." ~ expectation.name ~ ".overloads["
-                        ~ i.to!string ~ "].front.return_;"
-                        ~ "builder." ~ expectation.name ~ ".overloads["
-                        ~ i.to!string ~ "].popFront;"
-                        ~ "return ret; }");
+                mixin(format!q{
+                    override Overload.Return %s(Overload.Arguments arguments)
+                    {
+                        enum member = expectation.name;
+                        auto overloads = __traits(getMember, builder, member).overloads[i];
+
+                        if (overloads.empty)
+                        {
+                            return __traits(getMember, super, member)(arguments);
+                        }
+                        static foreach (j, argument; arguments)
+                        {
+                            if (!overloads.front.arguments.isNull
+                                && overloads.front.arguments.get!j != argument)
+                            {
+                                throw new ExpectationViolationError("Expectation failure");
+                            }
+                        }
+
+                        auto ret = overloads.front.return_;
+
+                        __traits(getMember, builder, member).overloads[i].popFront;
+                        return ret;
+                    }
+                }(expectation.name));
             }
         }
     }

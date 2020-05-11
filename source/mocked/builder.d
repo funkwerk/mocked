@@ -151,25 +151,6 @@ template VirtualMethods(T)
     alias VirtualMethods = Filter!(isVirtualMethod, __traits(allMembers, T));
 }
 
-template parameters(Call)
-{
-    template join(string accumulator, Args...)
-    {
-        static if (Args.length == 0)
-        {
-            enum string join = accumulator;
-        }
-        else
-        {
-            alias fqn = fullyQualifiedName!(Args[0].Seq[0]);
-            enum string join = join!(accumulator ~ fqn ~ " " ~ Args[0][1] ~ ", ", Args[1 .. $]);
-        }
-    }
-    alias ParameterList = ZipWith!(Pack, Pack!(Call.Arguments), Pack!(Call.ArgumentIdentifiers));
-
-    enum parameters = join!("", ParameterList);
-}
-
 struct Builder(T)
 if (isPolymorphicType!T)
 {

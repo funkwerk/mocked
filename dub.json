@@ -6,7 +6,6 @@
 		"Eugen Wissner"
 	],
 	"dependencies": {
-		"tanya:meta": "~>0.17.0",
 		"dshould": "~>1.2.1"
 	},
 	"configurations": [

@@ -57,13 +57,16 @@ struct Call(R, Args...)
     alias Arguments = Args;
 
     Maybe!Arguments arguments;
-    Return return_ = Return.init;
-
-    public ref typeof(this) returns(Return return_)
+    static if (!is(Return == void))
     {
-        this.return_ = return_;
+        Return return_ = Return.init;
 
-        return this;
+        public ref typeof(this) returns(Return return_)
+        {
+            this.return_ = return_;
+
+            return this;
+        }
     }
 }
 
@@ -118,14 +121,17 @@ struct ExpectationSetup(T, string member)
 
     static foreach (i, Overload; Overloads)
     {
-        ref Overload.Call returns(Overload.Return return_)
+        static if (!is(Overload.Return == void))
         {
-            typeof(return) call;
+            ref Overload.Call returns(Overload.Return return_)
+            {
+                typeof(return) call;
 
-            call.returns(return_);
-            this.overloads[i].calls ~= call;
+                call.returns(return_);
+                this.overloads[i].calls ~= call;
 
-            return this.overloads[i].back;
+                return this.overloads[i].back;
+            }
         }
 
         ref Overload.Call opCall(Overload.Arguments arguments)

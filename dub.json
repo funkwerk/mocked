@@ -5,21 +5,22 @@
 	"authors": [
 		"Eugen Wissner"
 	],
-	"dependencies": {
-		"dshould": "~>1.2.1"
-	},
 	"configurations": [
 		{
-			"name": "library",
-			"excludeSourceFiles": [
-				"source/app.d"
-			]
+			"name": "library"
 		},
 		{
 			"name": "unittest",
 			"targetType": "executable",
-			"mainSourceFile": "source/app.d",
+			"sourcePaths": [
+				"tests"
+			],
+			"importPaths": [
+				"tests"
+			],
+			"mainSourceFile": "tests/app.d",
 			"dependencies": {
+				"dshould": "~>1.2.1",
 				"unit-threaded": "~>0.10.8"
 			}
 		}

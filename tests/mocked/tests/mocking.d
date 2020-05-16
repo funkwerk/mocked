@@ -1,4 +1,4 @@
-module mocked.test;
+module mocked.tests.mocking;
 
 import dshould;
 import mocked;

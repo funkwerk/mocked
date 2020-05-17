@@ -275,3 +275,15 @@ unittest
                 ".outdent.strip);
     }
 }
+
+@("allows to disable the constructor")
+unittest
+{
+    static class Dependency
+    {
+        public this(string)
+        {
+        }
+    }
+    static assert(is(typeof(Mocker().mock!Dependency())));
+}

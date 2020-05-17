@@ -48,11 +48,18 @@ struct Mocker
 
         class Mocked : T
         {
-            static if (__traits(hasMember, T, "__ctor"))
+            static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
             {
                 this()
                 {
                     super(args);
+                }
+            }
+            else static if (__traits(hasMember, T, "__ctor"))
+            {
+                this()
+                {
+                    super(Parameters!(T.__ctor).init);
                 }
             }
 

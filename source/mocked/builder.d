@@ -1,17 +1,12 @@
 module mocked.builder;
 
+import mocked.error;
 import std.algorithm;
 import std.array;
 import std.conv;
-import std.exception;
 import std.meta;
 import std.traits;
 import std.typecons;
-
-final class ExpectationViolationError : Error
-{
-    mixin basicExceptionCtors;
-}
 
 struct Maybe(Arguments...)
 {
@@ -56,6 +51,8 @@ struct Call(R, Args...)
     alias Return = R;
     alias Arguments = Args;
 
+    bool passThrough_ = false;
+
     Maybe!Arguments arguments;
     static if (!is(Return == void))
     {
@@ -67,6 +64,13 @@ struct Call(R, Args...)
 
             return this;
         }
+    }
+
+    public ref typeof(this) passThrough()
+    {
+        this.passThrough_ = true;
+
+        return this;
     }
 }
 

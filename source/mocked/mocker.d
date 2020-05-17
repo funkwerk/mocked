@@ -1,6 +1,7 @@
 module mocked.mocker;
 
 import mocked.builder;
+import mocked.error;
 import mocked.repository;
 import std.conv;
 import std.format : format;
@@ -13,7 +14,7 @@ private enum string overloadingCode = q{
 
         if (overloads.empty)
         {
-            return __traits(getMember, super, "%1$s")(arguments);
+            throw new ExpectationViolationError("Unexpected call");
         }
         static foreach (j, argument; arguments)
         {
@@ -26,7 +27,19 @@ private enum string overloadingCode = q{
 
         static if (!is(Overload.Return == void))
         {
-            auto ret = overloads.front.return_;
+            Overload.Return ret = void;
+            if (overloads.front.passThrough_)
+            {
+                ret = __traits(getMember, super, "%1$s")(arguments);
+            }
+            else
+            {
+                ret = overloads.front.return_;
+            }
+        }
+        else if (overloads.front.passThrough_)
+        {
+            __traits(getMember, super, "%1$s")(arguments);
         }
         __traits(getMember, builder, "%1$s").overloads[i].popFront;
 
@@ -89,6 +102,6 @@ struct Mocker
 
     ~this()
     {
-        this.verify;
+        verify;
     }
 }

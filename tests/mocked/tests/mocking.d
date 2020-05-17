@@ -109,8 +109,11 @@ unittest
     {
         auto dependency = mock!Dependency;
 
-        dependency.identity("Jedes Wort ist ein Vorurtheil").should
-            .equal("Jedes Wort ist ein Vorurtheil");
+        dependency.expect.identity("Jedes Wort ist ein Vorurtheil.")
+            .passThrough;
+
+        dependency.identity("Jedes Wort ist ein Vorurtheil.").should
+            .equal("Jedes Wort ist ein Vorurtheil.");
     }
 }
 
@@ -224,6 +227,8 @@ unittest
     {
         auto dependency = mock!Dependency("Alea iacta est.");
 
+        dependency.expect.saySomething().passThrough;
+
         dependency.saySomething().should.equal("Alea iacta est.");
     }
 }
@@ -268,6 +273,8 @@ unittest
     {
         auto dependency = mock!Dependency("Kaum seid ihr geboren,",
                 "so fangt ihr auch schon an zu sterben.");
+
+        dependency.expect.say().passThrough;
 
         dependency.say.should.equal(r"
                 Kaum seid ihr geboren,

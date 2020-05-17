@@ -1,6 +1,7 @@
 module mocked.repository;
 
 import mocked.builder;
+import mocked.error;
 import std.conv;
 import std.traits;
 

@@ -3,7 +3,6 @@ module mocked.tests.mocking;
 import dshould;
 import mocked;
 import std.typecons;
-import unit_threaded : ShouldFail;
 
 @("mocks functions with one argument")
 unittest
@@ -204,24 +203,28 @@ unittest
     }
 }
 
-@ShouldFail("if an expected method hasn't been called")
+@("mocks classes with constructors")
 unittest
 {
     static class Dependency
     {
-        string say(string phrase)
+        string phrase;
+
+        public this(string phrase)
         {
-            return phrase;
+            this.phrase = phrase;
+        }
+
+        public string saySomething()
+        {
+            return this.phrase;
         }
     }
     with (Mocker())
     {
-        auto dependency = mock!Dependency;
+        auto dependency = mock!Dependency("Alea iacta est.");
 
-        dependency.expect.say("Man geht zu Grunde,")
-            .returns("wenn man immer zu den Gründen geht.");
-
-        dependency.verify; // FIXME: Must be called on the mocker object.
+        dependency.saySomething().should.equal("Alea iacta est.");
     }
 }
 
@@ -234,5 +237,41 @@ unittest
         {
         }
     }
-    static assert(is(typeof(Mocker().mock!Dependency)));
+    static assert(is(typeof(Mocker().mock!Dependency())));
+}
+
+@("mocks classes with overloaded constructors")
+unittest
+{
+    import std.string : join, outdent, strip;
+
+    static class Dependency
+    {
+        string phrase;
+
+        public this(string phrase)
+        {
+            this.phrase = phrase;
+        }
+
+        public this(string part1, string part2)
+        {
+            this.phrase = [part1, part2].join('\n');
+        }
+
+        public string say()
+        {
+            return this.phrase;
+        }
+    }
+    with (Mocker())
+    {
+        auto dependency = mock!Dependency("Kaum seid ihr geboren,",
+                "so fangt ihr auch schon an zu sterben.");
+
+        dependency.say.should.equal(r"
+                Kaum seid ihr geboren,
+                so fangt ihr auch schon an zu sterben.
+                ".outdent.strip);
+    }
 }

@@ -4,7 +4,12 @@ import mocked.builder;
 import std.conv;
 import std.traits;
 
-class Repository(T)
+interface Verifiable
+{
+    void verify();
+}
+
+class Repository(T) : Verifiable
 {
     T mock;
     Builder!T* builder;

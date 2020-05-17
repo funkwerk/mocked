@@ -1,4 +1,4 @@
-# mockeD
+# MockeD
 
 ![CI](https://github.com/funkwerk/mocked/workflows/CI/badge.svg)
 [![License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://raw.githubusercontent.com/funkwerk/mocked/master/LICENSE)
@@ -11,10 +11,10 @@ import mocked;
 
 class Dependency
 {
-	string authorOf(string phrase)
-	{
-		return null;
-	}
+    string authorOf(string phrase)
+    {
+        return null;
+    }
 }
 
 enum string phrase = "[T]he meaning of a word is its use in the language.";
@@ -24,8 +24,8 @@ Mocker mocker;
 auto builder = mocker.mock!Dependency;
 
 builder.expect
-	.authorOf("[T]he meaning of a word is its use in the language.")
-	.returns(expected);
+    .authorOf("[T]he meaning of a word is its use in the language.")
+    .returns(expected);
 
 auto dependency = builder.getMock;
 

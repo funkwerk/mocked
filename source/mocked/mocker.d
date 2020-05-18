@@ -8,7 +8,7 @@ import std.format : format;
 import std.traits;
 
 private enum string overloadingCode = q{
-    override Overload.Return %1$s(Overload.Arguments arguments)
+    %2$s Overload.Return %1$s(Overload.Arguments arguments)
     {
         auto overloads = __traits(getMember, builder, "%1$s").overloads[i];
 
@@ -25,7 +25,11 @@ private enum string overloadingCode = q{
             }
         }
 
-        static if (!is(Overload.Return == void))
+        static if (is(T == interface) && !is(Overload.Return == void))
+        {
+            Overload.Return ret = overloads.front.return_;
+        }
+        else static if (!is(Overload.Return == void))
         {
             Overload.Return ret = void;
             if (overloads.front.passThrough_)
@@ -37,9 +41,12 @@ private enum string overloadingCode = q{
                 ret = overloads.front.return_;
             }
         }
-        else if (overloads.front.passThrough_)
+        else static if (!is(T == interface))
         {
-            __traits(getMember, super, "%1$s")(arguments);
+            if (overloads.front.passThrough_)
+            {
+                __traits(getMember, super, "%1$s")(arguments);
+            }
         }
         __traits(getMember, builder, "%1$s").overloads[i].popFront;
 
@@ -80,7 +87,14 @@ struct Mocker
             {
                 static foreach (i, Overload; expectation.Overloads)
                 {
-                    mixin(format!overloadingCode(expectation.name));
+                    static if (is(T == class))
+                    {
+                        mixin(format!overloadingCode(expectation.name, "override "));
+                    }
+                    else
+                    {
+                        mixin(format!overloadingCode(expectation.name, ""));
+                    }
                 }
             }
         }

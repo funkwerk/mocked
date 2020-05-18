@@ -47,24 +47,27 @@ class Repository(T) : Verifiable
         }
     }
 
-    override size_t toHash()
+    static if (is(T == class))
     {
-        return getMock().toHash();
-    }
+        override size_t toHash()
+        {
+            return getMock().toHash();
+        }
 
-    override string toString()
-    {
-        return getMock().toString();
-    }
+        override string toString()
+        {
+            return getMock().toString();
+        }
 
-    override int opCmp(Object o)
-    {
-        return getMock().opCmp(o);
-    }
+        override int opCmp(Object o)
+        {
+            return getMock().opCmp(o);
+        }
 
-    override bool opEquals(Object o)
-    {
-        return getMock().opEquals(o);
+        override bool opEquals(Object o)
+        {
+            return getMock().opEquals(o);
+        }
     }
 
     alias getMock this;

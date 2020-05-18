@@ -270,8 +270,8 @@ unittest
     static assert(is(typeof(Mocker().mock!(Templated!(int))())));
 }
 
-@("templated mock")
-version (none) unittest
+@("interface mock")
+unittest
 {
     static assert(is(typeof(Mocker().mock!IM())));
 }

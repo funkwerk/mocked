@@ -8,7 +8,7 @@ import std.format : format;
 import std.traits;
 
 private enum string overloadingCode = q{
-    %2$s Overload.Return %1$s(Overload.Arguments arguments)
+    %2$s Overload.Return %1$s(Overload.Arguments arguments) %3$s
     {
         auto overloads = __traits(getMember, builder, "%1$s").overloads[i];
 
@@ -16,12 +16,15 @@ private enum string overloadingCode = q{
         {
             throw new ExpectationViolationError("Unexpected call");
         }
-        static foreach (j, argument; arguments)
+        if (!overloads.front.ignoreArgs_)
         {
-            if (!overloads.front.arguments.isNull
-                && overloads.front.arguments.get!j != argument)
+            static foreach (j, argument; arguments)
             {
-                throw new ExpectationViolationError("Expectation failure");
+                if (!overloads.front.arguments.isNull
+                    && overloads.front.arguments.get!j != argument)
+                {
+                    throw new ExpectationViolationError("Expectation failure");
+                }
             }
         }
 
@@ -89,11 +92,13 @@ struct Mocker
                 {
                     static if (is(T == class))
                     {
-                        mixin(format!overloadingCode(expectation.name, "override "));
+                        mixin(format!overloadingCode(expectation.name,
+                                "override ", Overload.qualifiers));
                     }
                     else
                     {
-                        mixin(format!overloadingCode(expectation.name, ""));
+                        mixin(format!overloadingCode(expectation.name,
+                                "", Overload.qualifiers));
                     }
                 }
             }

@@ -4,6 +4,7 @@ import mocked.error;
 import std.algorithm;
 import std.array;
 import std.conv;
+import std.format;
 import std.meta;
 import std.traits;
 import std.typecons;
@@ -49,9 +50,10 @@ struct Maybe(Arguments...)
 struct Call(R, Args...)
 {
     alias Return = R;
-    alias Arguments = Args;
+    alias Arguments = staticMap!(Unqual, Args);
 
     bool passThrough_ = false;
+    bool ignoreArgs_ = false;
 
     Maybe!Arguments arguments;
     static if (!is(Return == void))
@@ -72,6 +74,29 @@ struct Call(R, Args...)
 
         return this;
     }
+
+    public ref typeof(this) ignoreArgs()
+    {
+        this.ignoreArgs_ = true;
+
+        return this;
+    }
+}
+
+template words(Args...)
+{
+    static if (Args.length == 0)
+    {
+        enum string words = "";
+    }
+    else static if (Args.length == 1)
+    {
+        enum string words = Args[0];
+    }
+    else
+    {
+        enum string words = format!"%s %s"(Args[0], words!(Args[1..$]));
+    }
 }
 
 /**
@@ -84,6 +109,8 @@ struct Overload(alias F)
     alias Arguments = Parameters!F;
     alias ArgumentIdentifiers = ParameterIdentifierTuple!F;
     alias Call = .Call!(Return, Arguments);
+
+    enum string qualifiers = words!(__traits(getFunctionAttributes, F));
 
     Call[] calls;
 

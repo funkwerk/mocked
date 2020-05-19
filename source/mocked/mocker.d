@@ -51,7 +51,14 @@ private enum string overloadingCode = q{
                 __traits(getMember, super, "%1$s")(arguments);
             }
         }
-        __traits(getMember, builder, "%1$s").overloads[i].popFront;
+        if (__traits(getMember, builder, "%1$s").overloads[i].front.repeat_ > 1)
+        {
+            --__traits(getMember, builder, "%1$s").overloads[i].front.repeat_;
+        }
+        else if (__traits(getMember, builder, "%1$s").overloads[i].front.repeat_ == 1)
+        {
+            __traits(getMember, builder, "%1$s").overloads[i].popFront;
+        }
 
         static if (!is(Overload.Return == void))
         {
@@ -67,7 +74,7 @@ struct Mocker
     // Implementation
     auto mock(T, Args...)(Args args)
     {
-        Builder!T builder;
+        Repository!T builder;
 
         class Mocked : T
         {
@@ -105,7 +112,7 @@ struct Mocker
         }
 
         auto mock = new Mocked();
-        auto repository = new Repository!T(mock, builder);
+        auto repository = new Builder!T(mock, builder);
 
         this.repositories ~= repository;
         return repository;

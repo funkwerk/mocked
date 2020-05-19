@@ -2,7 +2,7 @@ module mocked.tests.alien;
 
 import dshould;
 import mocked;
-import unit_threaded : DontTest;
+import unit_threaded : DontTest, ShouldFail;
 
 version (unittest)
 {
@@ -317,14 +317,14 @@ unittest
     mocker.verify;
 }
 
-@("expect")
-version (none) unittest
+@ShouldFail("expect")
+unittest
 {
     Mocker mocker;
-    TestClass cl = mocker.mock!(TestClass);
-    mocker.expect(cl.test).repeat(0).returns("mrow?");
-    mocker.replay();
-    assertThrown!ExpectationViolationError(cl.test);
+    auto cl = mocker.mock!(TestClass);
+    cl.expect.test().repeat(0).returns("mrow?");
+
+    cl.test;
 }
 
 @("expect mismatched type")
@@ -351,17 +351,16 @@ version (none) unittest
 }
 
 @("repeat single")
-version (none) unittest
+unittest
 {
     Mocker mocker;
-    TestClass cl = mocker.mock!(TestClass);
-    mocker.expect(cl.test).repeat(2).returns("foom?");
-
-    mocker.replay();
+    auto cl = mocker.mock!(TestClass);
+    cl.expect.test().repeat(2).returns("foom?");
 
     cl.test;
     cl.test;
-    assertThrown!ExpectationViolationError(cl.test);
+
+    cl.test.should.throwAn!ExpectationViolationError;
 }
 
 @("repository match counts")
@@ -452,14 +451,16 @@ version (none) unittest
 }
 
 @("associative arrays")
-version (none) unittest
+unittest
 {
     Mocker mocker;
-    auto obj = mocker.mock!(Object);
-    mocker.expect(obj.toHash()).passThrough().repeatAny;
-    mocker.expect(obj.opEquals(null)).ignoreArgs().passThrough().repeatAny;
 
-    mocker.replay();
+    auto mock = mocker.mock!(Object);
+    mock.expect.toHash().passThrough().repeatAny;
+    mock.expect.opEquals(null).ignoreArgs().passThrough().repeatAny;
+
+    auto obj = mock.getMock;
+
     int[Object] i;
     i[obj] = 5;
     int j = i[obj];
@@ -571,77 +572,78 @@ version (none) unittest
 }
 
 @("mock interface")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
-    IFace obj = mocker.mock!(IFace);
-    debugLog("about to call once...");
-    obj.foo("hallo");
-    mocker.replay;
-    debugLog("about to call twice...");
-    obj.foo("hallo");
+    Mocker mocker;
+    auto obj = mocker.mock!IFace;
+
+    obj.expect.foo("hallo");
+
+    obj.getMock.foo("hallo");
+
     mocker.verify;
 }
 
 @("cast mock to interface")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
-    IFace obj = mocker.mock!(Smthng);
-    debugLog("about to call once...");
-    obj.foo("hallo");
-    mocker.replay;
-    debugLog("about to call twice...");
-    obj.foo("hallo");
+    Mocker mocker;
+    auto obj = mocker.mock!Smthng;
+
+    obj.expect.foo("hallo");
+
+    obj.getMock.foo("hallo");
+
     mocker.verify;
 }
 
 @("cast mock to interface")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
-    IFace obj = mocker.mock!(Smthng);
-    debugLog("about to call once...");
+    Mocker mocker;
+    auto obj = mocker.mock!Smthng;
+
+    obj.expect.foo("hallo");
+
     obj.foo("hallo");
-    mocker.replay;
-    debugLog("about to call twice...");
-    obj.foo("hallo");
+
     mocker.verify;
 }
 
 @("return user-defined type")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
+    Mocker mocker;
     auto obj = mocker.mock!(IRM);
-    auto im = mocker.mock!(IM);
-    debugLog("about to call once...");
-    mocker.expect(obj.get).returns(im);
-    obj.set(im);
-    mocker.replay;
-    debugLog("about to call twice...");
-    assert(obj.get is im, "returned the wrong value");
+    auto imBuilder = mocker.mock!(IM);
+    auto im = imBuilder.getMock;
+
+    obj.expect.get().returns(im);
+    obj.expect.set(im);
+
+    obj.get.should.be(im);
     obj.set(im);
     mocker.verify;
 }
 
 @("return user-defined type")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
-    auto obj = mocker.mock!(HasMember);
+    Mocker mocker;
+    mocker.mock!HasMember;
 }
 
 @("overloaded method")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
+    Mocker mocker;
     auto obj = mocker.mock!(Overloads);
-    obj.foo();
-    obj.foo(1);
-    mocker.replay;
+    obj.expect.foo();
+    obj.expect.foo(1);
+
     obj.foo(1);
     obj.foo;
+
     mocker.verify;
 }
 
@@ -812,17 +814,18 @@ version (none) unittest
 }
 
 @("returning different values on the same expectation")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker;
+    Mocker mocker;
     auto dependency = mocker.mock!Dependency;
 
     //mocker.ordered;
-    mocker.expect(dependency.foo).returns(1);
-    mocker.expect(dependency.foo).returns(2);
-    mocker.replay;
-    assert(dependency.foo == 1);
-    assert(dependency.foo == 2);
+    dependency.expect.foo.returns(1);
+    dependency.expect.foo.returns(2);
+
+    dependency.foo.should.equal(1);
+    dependency.foo.should.equal(2);
+
     mocker.verify;
 }
 

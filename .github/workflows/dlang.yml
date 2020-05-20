@@ -47,5 +47,5 @@ jobs:
     - name: Build D-Scanner
       run: dub build dscanner
 
-      name: Run D-Scanner
+    - name: Run D-Scanner
       run: dub run dscanner -- --styleCheck source tests

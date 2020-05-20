@@ -16,10 +16,12 @@ struct Call(R, Args...)
 {
     alias Return = R;
     alias Arguments = staticMap!(Unqual, Args);
+    alias CustomArgsComparator = bool delegate(Args) pure @nogc nothrow @safe;
 
     bool passThrough_ = false;
     bool ignoreArgs_ = false;
     uint repeat_ = 1;
+    CustomArgsComparator customArgsComparator_;
 
     Maybe!Arguments arguments;
     static if (!is(Return == void))
@@ -62,21 +64,29 @@ struct Call(R, Args...)
 
         return this;
     }
-}
 
-template words(Args...)
-{
-    static if (Args.length == 0)
+    public bool compareArguments(Args arguments)
     {
-        enum string words = "";
+        if (this.customArgsComparator_ !is null)
+        {
+            return this.customArgsComparator_(arguments);
+        }
+        static foreach (i, argument; arguments)
+        {
+            if (!this.arguments.isNull && this.arguments.get!i != argument)
+            {
+                return false;
+            }
+        }
+        return true;
     }
-    else static if (Args.length == 1)
+
+    public ref typeof(this) customArgsComparator(CustomArgsComparator comparator)
+    in (comparator !is null)
     {
-        enum string words = Args[0];
-    }
-    else
-    {
-        enum string words = format!"%s %s"(Args[0], words!(Args[1..$]));
+        this.customArgsComparator_ = comparator;
+
+        return this;
     }
 }
 
@@ -159,7 +169,7 @@ struct ExpectationSetup(T, string member)
 }
 
 struct Repository(T)
-if (is(T == class) || is(T == interface))
+if (isPolymorphicType!T)
 {
     private alias VirtualMethods = Filter!(ApplyLeft!(isVirtualMethod, T), __traits(allMembers, T));
 

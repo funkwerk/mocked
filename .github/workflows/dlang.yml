@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
     
     - name: Setup DMD
@@ -32,3 +31,17 @@ jobs:
         
     - name: Generate coverage report
       run: bash <(curl -s https://codecov.io/bash)
+
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup DMD
+      uses: WebFreak001/setup-dmd@v1
+      with:
+        dmd-version: 2.092.0
+
+    - name: Build D-Scanner
+      run: dub build dscanner

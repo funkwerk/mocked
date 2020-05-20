@@ -364,9 +364,9 @@ unittest
 }
 
 @("repository match counts")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker();
+    Mocker mocker;
     auto cl = mocker.mock!(TestClass);
 
     cl.test;
@@ -830,21 +830,18 @@ unittest
 }
 
 @("customArgsComparator")
-version (none) unittest
+unittest
 {
     import std.math;
 
-    auto mocker = new Mocker;
+    enum float argument = 1.0f;
+
+    Mocker mocker;
     auto dependency = mocker.mock!TakesFloat;
-    mocker.expect(dependency.foo(1.0f)).customArgsComparator(
-            (Dynamic a, Dynamic b) {
-        if (a.type == typeid(float))
-        {
-            return (abs(a.get!float() - b.get!float()) < 0.1f);
-        }
-        return true;
-    }).repeat(2);
-    mocker.replay;
+    dependency.expect
+        .foo(argument)
+        .customArgsComparator(a => abs(a - argument) < 0.1f)
+        .repeat(2);
 
     // custom comparison example - treat similar floats as equals
     dependency.foo(1.01);

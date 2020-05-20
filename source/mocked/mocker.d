@@ -16,16 +16,9 @@ private enum string overloadingCode = q{
         {
             throw new ExpectationViolationError("Unexpected call");
         }
-        if (!overloads.front.ignoreArgs_)
+        if (!overloads.front.ignoreArgs_ && !overloads.front.compareArguments(arguments))
         {
-            static foreach (j, argument; arguments)
-            {
-                if (!overloads.front.arguments.isNull
-                    && overloads.front.arguments.get!j != argument)
-                {
-                    throw new ExpectationViolationError("Expectation failure");
-                }
-            }
+            throw new ExpectationViolationError("Expectation failure");
         }
 
         static if (is(T == interface) && !is(Overload.Return == void))

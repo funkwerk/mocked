@@ -1,5 +1,7 @@
 module mocked.meta;
 
+import std.format : format;
+
 struct Maybe(Arguments...)
 {
     private Arguments arguments = Arguments.init;
@@ -33,3 +35,21 @@ struct Maybe(Arguments...)
         return this.arguments[n];
     }
 }
+
+template words(Args...)
+{
+    static if (Args.length == 0)
+    {
+        enum string words = "";
+    }
+    else static if (Args.length == 1)
+    {
+        enum string words = Args[0];
+    }
+    else
+    {
+        enum string words = format!"%s %s"(Args[0], words!(Args[1..$]));
+    }
+}
+
+enum bool isPolymorphicType(T) = is(T == class) || is(T == interface);

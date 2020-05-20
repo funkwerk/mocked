@@ -364,9 +364,9 @@ unittest
 }
 
 @("repository match counts")
-unittest
+version (none) unittest
 {
-    Mocker mocker;
+    auto mocker = new Mocker();
     auto cl = mocker.mock!(TestClass);
 
     cl.test;

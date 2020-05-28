@@ -39,7 +39,7 @@ final class Builder(T) : Verifiable
                 if (!__traits(getMember, builder, expectation.name).overloads[i].empty
                         && __traits(getMember, builder, expectation.name).overloads[i].front.repeat_ > 0)
                 {
-                    throw new ExpectationViolationError("Expected method not called");
+                    throw new ExpectationViolationException("Expected method not called");
                 }
             }
         }

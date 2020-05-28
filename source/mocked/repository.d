@@ -21,6 +21,7 @@ struct Call(R, Args...)
     bool passThrough_ = false;
     bool ignoreArgs_ = false;
     uint repeat_ = 1;
+    Exception exception;
     CustomArgsComparator customArgsComparator_;
 
     Maybe!Arguments arguments;
@@ -88,6 +89,13 @@ struct Call(R, Args...)
 
         return this;
     }
+
+    public ref typeof(this) throws(Exception exception)
+    {
+        this.exception = exception;
+
+        return this;
+    }
 }
 
 /**
@@ -101,7 +109,7 @@ struct Overload(alias F)
     alias ArgumentIdentifiers = ParameterIdentifierTuple!F;
     alias Call = .Call!(Return, Arguments);
 
-    enum string qualifiers = words!(__traits(getFunctionAttributes, F));
+    alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
 
     Call[] calls;
 

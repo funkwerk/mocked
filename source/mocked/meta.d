@@ -1,6 +1,7 @@
 module mocked.meta;
 
 import std.format : format;
+import std.meta;
 
 struct Maybe(Arguments...)
 {
@@ -53,3 +54,5 @@ template words(Args...)
 }
 
 enum bool isPolymorphicType(T) = is(T == class) || is(T == interface);
+
+enum bool canFind(alias T, Args...) = staticIndexOf!(T, Args) != -1;

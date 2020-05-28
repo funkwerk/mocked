@@ -261,7 +261,7 @@ version (unittest)
 @("nontemplated mock")
 unittest
 {
-    static assert(is(typeof(Mocker().mock!(Object)())));
+    Mocker().mock!(Object)();
 }
 
 @("templated mock")
@@ -404,50 +404,37 @@ version (none) unittest
 }
 
 @("exception payload")
-version (none) unittest
+unittest
 {
     Mocker mocker;
     auto obj = mocker.mock!(SimpleObject);
 
-    string msg = "divide by cucumber error";
-    obj.print;
-    mocker.lastCall().throws(new Exception(msg));
-    mocker.replay();
+    enum string msg = "divide by cucumber error";
+    obj.expect.print().throws(new Exception(msg));
 
-    try
-    {
-        obj.print;
-        assert(false, "expected exception not thrown");
-    }
-    catch (Exception e)
-    {
-        // Careful -- assertion errors derive from Exception
-        assert(e.msg == msg, e.msg);
-    }
+    obj.print.should.throwAn!Exception.where.msg.should.equal(msg);
 }
 
 @("passthrough")
-version (none) unittest
+unittest
 {
     Mocker mocker;
     auto cl = mocker.mock!(TestClass);
-    cl.test;
-    mocker.lastCall().passThrough();
+    cl.expect.test().passThrough;
 
-    mocker.replay();
     string str = cl.test;
-    assert(str == "test", str);
+    str.should.equal("test");
 }
 
 @("class with constructor init check")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker();
-    auto obj = mocker.mock!(ConstructorArg)(4);
-    obj.getA();
-    mocker.lastCall().passThrough();
-    mocker.replay();
-    assert(4 == obj.getA());
+    Mocker mocker;
+    auto obj = mocker.mock!ConstructorArg(4);
+
+    obj.expect.getA().passThrough;
+
+    obj.getA().should.equal(4);
 }
 
 @("associative arrays")

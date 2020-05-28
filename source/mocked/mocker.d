@@ -2,13 +2,14 @@ module mocked.mocker;
 
 import mocked.builder;
 import mocked.error;
+import mocked.meta;
 import mocked.repository;
 import std.conv;
 import std.format : format;
 import std.traits;
 
 private enum string overloadingCode = q{
-    %2$s Overload.Return %1$s(Overload.Arguments arguments) %3$s
+    %2$s Overload.Return %1$s(Overload.Arguments arguments)
     {
         auto overloads = __traits(getMember, builder, "%1$s").overloads[i];
 
@@ -53,6 +54,13 @@ private enum string overloadingCode = q{
             __traits(getMember, builder, "%1$s").overloads[i].popFront;
         }
 
+        static if (!canFind!("nothrow", Overload.qualifiers))
+        {
+            if (overloads.front.exception !is null)
+            {
+                throw overloads.front.exception;
+            }
+        }
         static if (!is(Overload.Return == void))
         {
             return ret;
@@ -93,12 +101,12 @@ struct Mocker
                     static if (is(T == class))
                     {
                         mixin(format!overloadingCode(expectation.name,
-                                "override ", Overload.qualifiers));
+                                words!("override", Overload.qualifiers)));
                     }
                     else
                     {
                         mixin(format!overloadingCode(expectation.name,
-                                "", Overload.qualifiers));
+                                words!(Overload.qualifiers)));
                     }
                 }
             }

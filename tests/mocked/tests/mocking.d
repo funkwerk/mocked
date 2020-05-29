@@ -294,3 +294,47 @@ unittest
     }
     static assert(is(typeof(Mocker().mock!Dependency())));
 }
+
+@("allows arbitrary actions")
+unittest
+{
+    enum string expected = "Nihil est in intellectu, quod non prius fuerit in sensibus";
+    static class Dependency
+    {
+        void setPhrase()
+        {
+        }
+    }
+
+    string phrase;
+    Mocker mocker;
+    auto dependency = mocker.mock!Dependency();
+
+    dependency.expect.setPhrase().action(() {
+        phrase = expected;
+    });
+
+    dependency.setPhrase();
+
+    phrase.should.equal(expected);
+}
+
+@("propagates the value returned by an action")
+unittest
+{
+    enum string expected = "Auf seine Fehler säen.";
+    static class Dependency
+    {
+        string phrase()
+        {
+            return null;
+        }
+    }
+
+    Mocker mocker;
+    auto dependency = mocker.mock!Dependency;
+
+    dependency.expect.phrase().action(() => expected);
+
+    dependency.phrase.should.equal(expected);
+}

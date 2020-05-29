@@ -22,29 +22,42 @@ private enum string overloadingCode = q{
             throw new ExpectationViolationError("Expectation failure");
         }
 
-        static if (is(T == interface) && !is(Overload.Return == void))
+        static if (is(Overload.Return == void))
         {
-            Overload.Return ret = overloads.front.return_;
+            if (overloads.front.action_ !is null)
+            {
+                overloads.front.action_(arguments);
+            }
         }
-        else static if (!is(Overload.Return == void))
+        else
         {
             Overload.Return ret = void;
-            if (overloads.front.passThrough_)
+
+            if (overloads.front.action_ !is null)
             {
-                ret = __traits(getMember, super, "%1$s")(arguments);
+                ret = overloads.front.action_(arguments);
             }
             else
             {
                 ret = overloads.front.return_;
             }
         }
-        else static if (!is(T == interface))
+
+        static if (!is(T == interface) && is(Overload.Return == void))
         {
             if (overloads.front.passThrough_)
             {
                 __traits(getMember, super, "%1$s")(arguments);
             }
         }
+        else static if (!is(T == interface))
+        {
+            if (overloads.front.passThrough_)
+            {
+                ret = __traits(getMember, super, "%1$s")(arguments);
+            }
+        }
+
         if (__traits(getMember, builder, "%1$s").overloads[i].front.repeat_ > 1)
         {
             --__traits(getMember, builder, "%1$s").overloads[i].front.repeat_;

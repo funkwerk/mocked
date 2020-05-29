@@ -9,22 +9,28 @@ import std.meta;
 import std.traits;
 
 /**
+ * $(D_SYMBOL Call) represents a single call of a mocked method.
+ *
  * Params:
- *     F = Function to build this $(D_SYMBOL Call) from.
+ *     R = Return type.
+ *     Args = Argument types.
  */
 struct Call(R, Args...)
 {
     alias Return = R;
     alias Arguments = staticMap!(Unqual, Args);
     alias CustomArgsComparator = bool delegate(Args) pure @nogc nothrow @safe;
+    alias Action = Return delegate(Args) pure @nogc nothrow @safe;
 
     bool passThrough_ = false;
     bool ignoreArgs_ = false;
     uint repeat_ = 1;
     Exception exception;
     CustomArgsComparator customArgsComparator_;
+    Action action_;
 
     Maybe!Arguments arguments;
+
     static if (!is(Return == void))
     {
         Return return_ = Return.init;
@@ -37,6 +43,15 @@ struct Call(R, Args...)
         }
     }
 
+    /**
+     * Instead of returning or throwing a given value, pass the call through to
+     * the mocked type object.
+     *
+     * This is useful for example for enabling use of mock object in hashmaps
+     * by enabling `toHash` and `opEquals` of your class.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
     public ref typeof(this) passThrough()
     {
         this.passThrough_ = true;
@@ -93,6 +108,25 @@ struct Call(R, Args...)
     public ref typeof(this) throws(Exception exception)
     {
         this.exception = exception;
+
+        return this;
+    }
+
+    /**
+     * When the method which matches this expectation is called execute the
+     * given delegate. The delegate's signature must match the signature
+     * of the called method.
+     *
+     * The called method will return whatever the given delegate returns.
+     *
+     * Params:
+     *     callback = Callable should be called.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
+    public ref typeof(this) action(Action callback)
+    {
+        this.action_ = callback;
 
         return this;
     }

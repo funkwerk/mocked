@@ -65,10 +65,53 @@ really called i.e you expect function retrieving data to call connect(), because
 it not doing so is an error. Now you run tests against object with fake (mocked)
 DB connection. This way, only the code you want to test is tested, nothing more.
 
-More examples about use of mocks can be found at: http://www.youtube.com/watch?v=V98Z11V7kEY
+More examples about use of mocks can be found at:
+http://www.youtube.com/watch?v=V98Z11V7kEY
 
 ## Why is mockeD useful?
 
 A mock objects framework allows you to quickly create mock objects, set up
 expectations for them, and check to see whether these expectations have been
 fulfilled. This saves you tedious work of creating those objects manually.
+
+## Configuration
+
+### Custom argument comparator
+
+You can provide a function, which will be used to compare two objects of a
+specific type. Use `configure` instead of the `Mocker` to create a custom mocker
+instance. `configure` takes a tuple of `Comparator`s, so you can specify as many
+comparators as you like, but they aren't allowed to conflict, so the types in
+question should be distinct types.
+
+Every `Comparator` has a single template parameter which is a function actually
+used for the comparison. This function should have exactly two arguments of the
+same type and return a boolean value.
+
+```d
+import mocked;
+import std.math : fabs;
+
+class Dependency
+{
+    public void call(float)
+    {
+    }
+}
+
+// This function is used to compare two floating point numbers that don't
+// match exactly.
+alias approxComparator = (float a, float b) {
+    return fabs(a - b) <= 0.1;
+};
+auto mocker = configure!(Comparator!approxComparator);
+auto builder = mocker.mock!Dependency;
+
+builder.expect.call(1.01);
+
+auto mock = builder.getMock;
+
+mock.call(1.02);
+
+mocker.verify;
+```

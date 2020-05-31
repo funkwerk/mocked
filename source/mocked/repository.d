@@ -81,7 +81,7 @@ struct Call(R, Args...)
         return this;
     }
 
-    public bool compareArguments(Args arguments)
+    public bool compareArguments(alias options)(Args arguments)
     {
         if (this.customArgsComparator_ !is null)
         {
@@ -89,7 +89,7 @@ struct Call(R, Args...)
         }
         static foreach (i, argument; arguments)
         {
-            if (!this.arguments.isNull && this.arguments.get!i != argument)
+            if (!this.arguments.isNull && !options.equal(this.arguments.get!i, argument))
             {
                 return false;
             }

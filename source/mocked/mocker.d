@@ -3,6 +3,7 @@ module mocked.mocker;
 import mocked.builder;
 import mocked.error;
 import mocked.meta;
+import mocked.option;
 import mocked.repository;
 import std.conv;
 import std.format : format;
@@ -17,7 +18,8 @@ private enum string overloadingCode = q{
         {
             throw new ExpectationViolationError("Unexpected call");
         }
-        if (!overloads.front.ignoreArgs_ && !overloads.front.compareArguments(arguments))
+        if (!overloads.front.ignoreArgs_
+                && !overloads.front.compareArguments!options(arguments))
         {
             throw new ExpectationViolationError("Expectation failure");
         }
@@ -81,11 +83,48 @@ private enum string overloadingCode = q{
     }
 };
 
-struct Mocker
+/**
+ * Mocker instance with default options.
+ *
+ * See_Also: $(D_PSYMBOL Factory).
+ */
+alias Mocker = Factory!(Options!());
+
+/**
+ * Constructs a mocker with options passed as $(D_PARAM Args).
+ *
+ * Params:
+ *     Args = Mocker options.
+ *
+ * See_Also: $(D_PSYMBOL Factory).
+ * See_Also: $(D_PSYMBOL Mocker).
+ */
+auto configure(Args...)()
+{
+    return Factory!(Options!Args)();
+}
+
+/**
+ * A class through which one creates mock objects and manages expectations
+ * about calls to their methods.
+ *
+ * Params:
+ *     Options = Mocker $(D_PSYMBOL Options).
+ *
+ * See_Also: $(D_PSYMBOL Mocker), $(D_PSYMBOL CustomMocker).
+ */
+struct Factory(Options)
 {
     Verifiable[] repositories;
+    private enum Options options = Options();
 
-    // Implementation
+    /**
+     * Mocks the type $(D_PARAM T).
+     *
+     * Params:
+     *     T = The type to mock.
+     *     Args = Constructor arguments.
+     */
     auto mock(T, Args...)(Args args)
     {
         Repository!T builder;

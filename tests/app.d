@@ -8,5 +8,6 @@ mixin runTestsMain!(
     mocked.tests.alien,
     mocked.tests.expectations,
     mocked.tests.mocking,
+    mocked.tests.option,
     mocked.tests.readme,
 );

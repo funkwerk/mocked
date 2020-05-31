@@ -26,3 +26,32 @@ unittest
 
     assert(dependency.authorOf(phrase) == expected);
 }
+
+unittest
+{
+    import mocked;
+    import std.math : fabs;
+
+    static class Dependency
+    {
+        public void call(float)
+        {
+        }
+    }
+
+    // This function is used to compare two floating point numbers that don't
+    // match exactly.
+    alias approxComparator = (float a, float b) {
+        return fabs(a - b) <= 0.1;
+    };
+    auto mocker = configure!(Comparator!approxComparator);
+    auto builder = mocker.mock!Dependency;
+
+    builder.expect.call(1.01);
+
+    auto mock = builder.getMock;
+
+    mock.call(1.02);
+
+    mocker.verify;
+}

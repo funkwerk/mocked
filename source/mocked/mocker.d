@@ -16,12 +16,12 @@ private enum string overloadingCode = q{
 
         if (overloads.empty)
         {
-            throw new ExpectationViolationError("Unexpected call");
+            throw unexpectedCallError!(Overload.Arguments)("%1$s", arguments);
         }
         if (!overloads.front.ignoreArgs_
                 && !overloads.front.compareArguments!options(arguments))
         {
-            throw new ExpectationViolationError("Expectation failure");
+            throw new UnexpectedArgumentError("Expectation failure");
         }
 
         static if (is(Overload.Return == void))

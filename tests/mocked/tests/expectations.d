@@ -41,3 +41,25 @@ unittest
 
     mocker.verify;
 }
+
+@("prints arguments in the unexpected call error message")
+unittest
+{
+    static class Dependency
+    {
+        void say(string phrase1, string phrase2)
+        {
+        }
+    }
+    Mocker mocker;
+
+    auto mock = mocker.mock!Dependency.getMock;
+
+    mock.say("Ton der Jugend", "zu laut.")
+        .should
+        .throwAn!UnexpectedCallError
+        .where
+        .toString
+        .should
+        .equal(`Unexpected call: say("Ton der Jugend", "zu laut.")`);
+}

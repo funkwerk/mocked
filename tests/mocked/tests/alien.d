@@ -279,8 +279,9 @@ unittest
 @("constructor argument")
 unittest
 {
-    auto mocker = new Mocker();
-    auto obj = mocker.mock!(ConstructorArg)(4);
+    Mocker mocker;
+
+    static assert(is(typeof(mocker.mock!(ConstructorArg)(4))));
 }
 
 @DontTest
@@ -313,7 +314,7 @@ unittest
     Mocker mocker;
     TestClass cl = mocker.mock!(TestClass);
 
-    cl.test.should.throwA!ExpectationViolationError;
+    cl.test.should.throwA!UnexpectedCallError;
     mocker.verify;
 }
 
@@ -360,47 +361,41 @@ unittest
     cl.test;
     cl.test;
 
-    cl.test.should.throwAn!ExpectationViolationError;
+    cl.test.should.throwAn!UnexpectedCallError;
 }
 
-@("repository match counts")
-version (none) unittest
+@ShouldFail("repository match counts")
+unittest
 {
-    auto mocker = new Mocker();
-    auto cl = mocker.mock!(TestClass);
+    Mocker mocker;
+    auto cl = mocker.mock!TestClass;
 
-    cl.test;
-    mocker.lastCall().repeat(2, 2).returns("mew.");
-    mocker.replay();
-    assertThrown!ExpectationViolationError(mocker.verify());
+    cl.expect.test().repeat(2).returns("mew.");
+
+    mocker.verify();
 }
 
 @("delegate payload")
-version (none) unittest
+unittest
 {
     bool calledPayload = false;
-    auto mocker = new Mocker();
-    auto obj = mocker.mock!(SimpleObject);
+    Mocker mocker;
+    auto obj = mocker.mock!SimpleObject;
 
-    //obj.print;
-    mocker.expect(obj.print).action({ calledPayload = true; });
-    mocker.replay();
+    obj.expect.print().action({ calledPayload = true; });
 
     obj.print;
-    assert(calledPayload);
+
+    calledPayload.should.be(true);
 }
 
 @("delegate payload with mismatching parameters")
-version (none) unittest
+unittest
 {
-    auto mocker = new Mocker();
-    auto obj = mocker.mock!(SimpleObject);
+    Mocker mocker;
+    auto obj = mocker.mock!SimpleObject;
 
-    //o.print;
-    mocker.expect(obj.print).action((int) {});
-    mocker.replay();
-
-    assertThrown!Error(obj.print);
+    static assert(!is(typeof(obj.expect.print().action((int) {}))));
 }
 
 @("exception payload")

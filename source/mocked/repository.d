@@ -173,6 +173,11 @@ struct Overload(alias F)
     {
         this.calls.popBack;
     }
+
+    public void clear()
+    {
+        this.calls = [];
+    }
 }
 
 struct ExpectationSetup(T, string member)

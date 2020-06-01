@@ -63,3 +63,22 @@ unittest
         .should
         .equal(`Unexpected call: say("Ton der Jugend", "zu laut.")`);
 }
+
+@("throws once")
+unittest
+{
+    static class Dependency
+    {
+        void say(string phrase)
+        {
+        }
+    }
+    Mocker mocker;
+
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect.say("Die Ängstlichkeit vergiftet die Seele.").repeat(2);
+
+    mocker.verify.should.throwAn!ExpectationViolationException;
+    mocker.verify.should.not.throwAn!ExpectationViolationException;
+}

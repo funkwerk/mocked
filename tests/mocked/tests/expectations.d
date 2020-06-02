@@ -61,7 +61,7 @@ unittest
         .where
         .toString
         .should
-        .equal(`Unexpected call: say("Ton der Jugend", "zu laut.")`);
+        .equal(`Unexpected call: Dependency.say("Ton der Jugend", "zu laut.")`);
 }
 
 @("throws once")
@@ -81,4 +81,24 @@ unittest
 
     mocker.verify.should.throwAn!ExpectationViolationException;
     mocker.verify.should.not.throwAn!ExpectationViolationException;
+}
+
+@("gives multiline error messages on mismatched arguments")
+unittest
+{
+    static class Dependency
+    {
+        void say(string phrase)
+        {
+        }
+    }
+    Mocker mocker;
+
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect.say("Let's eat, grandma!").repeat(2);
+
+    mock.say("Let's eat grandma!")
+        .should.throwAn!UnexpectedArgumentError
+        .where.toString.should.contain.any("\n");
 }

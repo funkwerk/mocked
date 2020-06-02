@@ -8,6 +8,8 @@ struct Maybe(Arguments...)
     private Arguments arguments = Arguments.init;
     private bool isNull_ = true;
 
+    public enum size_t length = Arguments.length;
+
     public static Maybe!Arguments opCall(Arguments arguments)
     {
         typeof(return) ret;

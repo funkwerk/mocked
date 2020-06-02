@@ -52,7 +52,6 @@ final class UnexpectedCallError : Error
      * Constructs an $(D_PSYMBOL UnexpectedCallError).
      *
      * Params:
-     *     Args = $(D_PARAM name)'s arguments.
      *     name = Unexpected call name.
      *     arguments = $(D_PARAM name)'s arguments.
      *     file = File.
@@ -71,7 +70,8 @@ final class UnexpectedCallError : Error
 
     public override string toString()
     {
-        return format!"%s: %s(%(%s, %))"(this.msg, this.name, this.arguments);
+        return format!"%s: %s(%(%s, %))\n\n---\n%s"(this.msg,
+                this.name, this.arguments, this.info);
     }
 }
 
@@ -126,8 +126,6 @@ final class UnexpectedArgumentError : Error
      * Constructs an $(D_PSYMBOL UnexpectedArgumentError).
      *
      * Params:
-     *     T = Object type.
-     *     Args = $(D_PARAM name)'s actual and expected arguments.
      *     name = Unexpected call name.
      *     arguments = $(D_PARAM name)'s actual and expected arguments.
      *     file = File.
@@ -154,19 +152,53 @@ final class UnexpectedArgumentError : Error
 
         message ~= format!"  Expected: %s(%(%s, %))\n"(this.name, expected);
         message ~= format!"  but got: %s(%(%s, %))\n"(this.name, actual);
+        message ~= format!"\n\n---\n%s"(this.info);
 
         return message.data;
     }
 }
 
+ExpectationViolationException expectationViolationException(T, MaybeArgs)(
+        string name,
+        MaybeArgs arguments, string file = __FILE__, size_t line = __LINE__,
+        Throwable nextInChain = null)
+{
+    string[] formattedArguments;
+
+    static foreach (i; 0 .. MaybeArgs.length)
+    {
+        formattedArguments ~= to!string(arguments.get!i);
+    }
+    
+    return new ExpectationViolationException(formatName!T(name),
+            formattedArguments, file, line, nextInChain);
+}
+
+// Expected the method to be called n times, but called m times,
+// where m < n.
+// Same as unexpected call, but with expected arguments instead of the actual ones.
 /**
  * Thrown if a method was expected to be called, but wasn't.
  */
 final class ExpectationViolationException : Exception
 {
-    this(string msg, string file = __FILE__, size_t line = __LINE__,
-            Throwable nextInChain = null)
+    string name;
+    string[] arguments;
+
+    /**
+     * Constructs an $(D_PSYMBOL UnexpectedArgumentError).
+     */
+    this(string name, string[] arguments, string file, size_t line, Throwable nextInChain)
     {
-        super(msg, file, line, nextInChain);
+        this.name = name;
+        this.arguments = arguments;
+
+        super("Expected method not called", file, line, nextInChain);
+    }
+
+    public override string toString()
+    {
+        return format!"%s: %s(%(%s, %))\n\n---\n%s"(this.msg,
+                this.name, this.arguments, this.info);
     }
 }

@@ -1,8 +1,18 @@
 module mocked.tests.expectations;
 
 import dshould;
+import dshould.ShouldType;
 import mocked;
+import std.algorithm;
 import unit_threaded : ShouldFail;
+
+void startWith(Should, T)(Should should, T expected,
+        Fence _ = Fence(), string file = __FILE__, size_t line = __LINE__)
+if (isInstanceOf!(ShouldType, Should))
+{
+    auto got = should.got;
+    should.check(got.startsWith(expected), expected, got, file, line);
+}
 
 @ShouldFail("if an expected method hasn't been called")
 unittest
@@ -56,12 +66,9 @@ unittest
     auto mock = mocker.mock!Dependency.getMock;
 
     mock.say("Ton der Jugend", "zu laut.")
-        .should
-        .throwAn!UnexpectedCallError
-        .where
-        .toString
-        .should
-        .equal(`Unexpected call: Dependency.say("Ton der Jugend", "zu laut.")`);
+        .should.throwAn!UnexpectedCallError
+        .where.toString
+        .should.startWith(`Unexpected call: Dependency.say("Ton der Jugend", "zu laut.")`);
 }
 
 @("throws once")
@@ -101,4 +108,27 @@ unittest
     mock.say("Let's eat grandma!")
         .should.throwAn!UnexpectedArgumentError
         .where.toString.should.contain.any("\n");
+}
+
+@("verify prints what method was expected")
+unittest
+{
+    enum string phrase = "Täglich erstaune ich: ich kenne mich selber nicht!";
+    static class Dependency
+    {
+        void say(string)
+        {
+        }
+    }
+    Mocker mocker;
+
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect.say(phrase);
+
+    mocker.verify
+        .should.throwAn!ExpectationViolationException
+        .where.toString.should.startWith(
+                `Expected method not called: Dependency.say("` ~ phrase ~ `")`
+        );
 }

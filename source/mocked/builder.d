@@ -32,7 +32,16 @@ final class Builder(T) : Verifiable
 
     void verify()
     {
-        bool unmatched;
+        scope (failure)
+        {
+            static foreach (expectation; this.builder.ExpectationTuple)
+            {
+                static foreach (i, Overload; expectation.Overloads)
+                {
+                    __traits(getMember, builder, expectation.name).overloads[i].clear();
+                }
+            }
+        }
 
         static foreach (expectation; this.builder.ExpectationTuple)
         {
@@ -41,23 +50,11 @@ final class Builder(T) : Verifiable
                 if (!__traits(getMember, builder, expectation.name).overloads[i].empty
                         && __traits(getMember, builder, expectation.name).overloads[i].front.repeat_ > 0)
                 {
-                    unmatched = true;
+                    throw expectationViolationException!T(expectation.name,
+                            __traits(getMember, builder, expectation.name).overloads[i].front.arguments);
                 }
             }
         }
-        if (!unmatched)
-        {
-            return;
-        }
-
-        static foreach (expectation; this.builder.ExpectationTuple)
-        {
-            static foreach (i, Overload; expectation.Overloads)
-            {
-                __traits(getMember, builder, expectation.name).overloads[i].clear();
-            }
-        }
-        throw new ExpectationViolationException("Expected method not called");
     }
 
     static if (is(T == class))

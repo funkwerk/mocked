@@ -39,19 +39,27 @@ struct Maybe(Arguments...)
     }
 }
 
-template words(Args...)
+/**
+ * Takes a sequence of strings and joins them with separating spaces.
+ *
+ * Params:
+ *     Args = Strings.
+ *
+ * Returns: Concatenated string.
+ */
+template unwords(Args...)
 {
     static if (Args.length == 0)
     {
-        enum string words = "";
+        enum string unwords = "";
     }
     else static if (Args.length == 1)
     {
-        enum string words = Args[0];
+        enum string unwords = Args[0];
     }
     else
     {
-        enum string words = format!"%s %s"(Args[0], words!(Args[1..$]));
+        enum string unwords = format!"%s %s"(Args[0], unwords!(Args[1..$]));
     }
 }
 

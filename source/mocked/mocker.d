@@ -9,13 +9,13 @@ import std.format : format;
 import std.traits;
 
 private enum string overloadingCode = q{
-    %2$s Overload.Return %1$s(Overload.Arguments arguments)
+    %2$s Overload.Return %1$s(Overload.Parameters arguments)
     {
         auto overloads = __traits(getMember, builder, "%1$s").overloads[i];
 
         if (overloads.empty)
         {
-            throw unexpectedCallError!(typeof(super), Overload.Arguments)("%1$s", arguments);
+            throw unexpectedCallError!(typeof(super), Overload.Parameters)("%1$s", arguments);
         }
         if (!overloads.front.ignoreArgs_
                 && !overloads.front.compareArguments!options(arguments))
@@ -23,7 +23,7 @@ private enum string overloadingCode = q{
             __traits(getMember, builder, "%1$s").overloads[i].clear();
 
             throw unexpectedArgumentError!(typeof(super),
-                    Overload.Arguments, Maybe!(Overload.Call.Arguments))(
+                    Overload.Parameters, Maybe!(Overload.Call.Arguments))(
                     "%1$s", arguments, overloads.front.arguments);
         }
 
@@ -156,12 +156,12 @@ struct Factory(Options)
                     static if (is(T == class))
                     {
                         mixin(format!overloadingCode(expectation.name,
-                                words!("override", Overload.qualifiers)));
+                                unwords!("override", Overload.qualifiers)));
                     }
                     else
                     {
                         mixin(format!overloadingCode(expectation.name,
-                                words!(Overload.qualifiers)));
+                                unwords!(Overload.qualifiers)));
                     }
                 }
             }

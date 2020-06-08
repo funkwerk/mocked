@@ -338,3 +338,21 @@ unittest
 
     dependency.phrase.should.equal(expected);
 }
+
+@(".action inherits nothrow from the mocked method")
+unittest
+{
+    static class Dependency
+    {
+        void act() pure @safe
+        {
+        }
+    }
+    alias action = () pure @safe {
+        throw new Exception("Von sich absehen ist nöthig um gut - zu sehen.");
+    };
+    Mocker mocker;
+    auto dependency = mocker.mock!Dependency;
+
+    static assert(is(typeof(dependency.expect.act().action(action))));
+}

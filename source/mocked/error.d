@@ -60,7 +60,7 @@ final class UnexpectedCallError : Error
      */
     this(string name, string[] arguments,
             string file = __FILE__, size_t line = __LINE__,
-            Throwable nextInChain = null)
+            Throwable nextInChain = null) nothrow pure @safe
     {
         this.name = name;
         this.arguments = arguments;
@@ -133,7 +133,7 @@ final class UnexpectedArgumentError : Error
      *     nextInChain = The next error.
      */
     this(string name, ExpectationPair[] arguments,
-            string file, size_t line, Throwable nextInChain)
+            string file, size_t line, Throwable nextInChain) nothrow pure @safe
     {
         this.name = name;
         this.arguments = arguments;

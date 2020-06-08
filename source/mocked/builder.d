@@ -87,18 +87,32 @@ final class Mocked(T) : Verifiable
 }
 
 /**
- * $(D_SYMBOL Call) represents a single call of a mocked method.
+ * $(D_PSYMBOL Call) represents a single call of a mocked method.
  *
  * Params:
- *     R = Return type.
- *     Args = Argument types.
+ *     F = Function represented by this $(D_PSYMBOL Call).
  */
-struct Call(R, Args...)
+struct Call(alias F)
+if (isCallable!F)
 {
-    alias Return = R;
-    alias Arguments = staticMap!(Unqual, Args);
-    alias CustomArgsComparator = bool delegate(Args) pure @nogc nothrow @safe;
-    alias Action = Return delegate(Args) pure @nogc nothrow @safe;
+    /// Return type of the mocked method.
+    alias Return = ReturnType!F;
+
+    // Parameters accepted by the mocked method.
+    alias Parameters = .Parameters!F;
+
+    /// Arguments passed to set the expectation up.
+    alias Arguments = staticMap!(Unqual, Parameters);
+
+    /// Attribute set of the mocked method.
+    alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
+
+    private alias concatenatedQualifiers = unwords!qualifiers;
+
+    mixin("alias CustomArgsComparator = bool delegate(Parameters) "
+            ~ concatenatedQualifiers ~ ";");
+    mixin("alias Action = Return delegate(Parameters) "
+            ~ concatenatedQualifiers ~ ";");
 
     bool passThrough_ = false;
     bool ignoreArgs_ = false;
@@ -159,7 +173,7 @@ struct Call(R, Args...)
         return this;
     }
 
-    public bool compareArguments(alias options)(Args arguments)
+    public bool compareArguments(alias options)(Parameters arguments)
     {
         if (this.customArgsComparator_ !is null)
         {
@@ -212,16 +226,22 @@ struct Call(R, Args...)
 
 /**
  * Params:
- *     F = Function to build this $(D_SYMBOL Overload) from.
+ *     F = Function to build this $(D_PSYMBOL Overload) from.
  */
 struct Overload(alias F)
 {
-    alias Return = ReturnType!F;
-    alias Arguments = Parameters!F;
-    alias ArgumentIdentifiers = ParameterIdentifierTuple!F;
-    alias Call = .Call!(Return, Arguments);
+    alias Call = .Call!F;
 
-    alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
+    /// Return type of the mocked method.
+    alias Return = Call.Return;
+
+    // Parameters accepted by the mocked method.
+    alias Parameters = Call.Parameters;
+
+    /// Attribute set of the mocked method.
+    alias qualifiers = Call.qualifiers;
+
+    alias ArgumentIdentifiers = ParameterIdentifierTuple!F;
 
     Call[] calls;
 
@@ -281,7 +301,7 @@ struct ExpectationSetup(T, string member)
             }
         }
 
-        ref Overload.Call opCall(Overload.Arguments arguments)
+        ref Overload.Call opCall(Overload.Parameters arguments)
         {
             typeof(return) call;
 

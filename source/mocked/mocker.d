@@ -4,7 +4,6 @@ import mocked.builder;
 import mocked.error;
 import mocked.meta;
 import mocked.option;
-import mocked.repository;
 import std.conv;
 import std.format : format;
 import std.traits;
@@ -133,7 +132,7 @@ struct Factory(Options)
     {
         Repository!T builder;
 
-        class Mocked : T
+        class Mock : T
         {
             static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
             {
@@ -168,8 +167,8 @@ struct Factory(Options)
             }
         }
 
-        auto mock = new Mocked();
-        auto repository = new Builder!T(mock, builder);
+        auto mock = new Mock();
+        auto repository = new Mocked!T(mock, builder);
 
         this.repositories ~= repository;
         return repository;

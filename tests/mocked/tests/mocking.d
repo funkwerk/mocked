@@ -368,3 +368,19 @@ unittest
 
     static assert(is(typeof(mocker.mock!A())));
 }
+
+@("supports struct with immutable members as arguments")
+unittest
+{
+    static struct S
+    {
+        private immutable string s;
+    }
+    static class Dependency
+    {
+        void withDefaultParameter(S)
+        {
+        }
+    }
+   static assert(is(typeof(Mocker().mock!Dependency())));
+}

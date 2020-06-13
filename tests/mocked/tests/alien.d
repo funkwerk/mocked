@@ -17,15 +17,16 @@ version (unittest)
 
     class ConstructorArg
     {
+        int a;
+
         this(int i)
         {
-            a = i;
+            this.a = i;
         }
 
-        int a;
         int getA()
         {
-            return a;
+            return this.a;
         }
     }
 
@@ -63,7 +64,7 @@ version (unittest)
 
     class Smthng : IFace
     {
-        void foo(string s)
+        void foo(string)
         {
         }
     }
@@ -79,7 +80,7 @@ version (unittest)
         {
         }
 
-        void foo(int i)
+        void foo(int)
         {
         }
     }
@@ -140,7 +141,7 @@ version (unittest)
             return 0;
         }
 
-        final int make(int i)
+        final int make(int)
         {
             return 2;
         }
@@ -161,14 +162,14 @@ version (unittest)
 
     class TemplateMethods
     {
-        string get(T)(T t)
+        string get(T)(T)
         {
             import std.traits;
 
             return fullyQualifiedName!T;
         }
 
-        int getSomethings(T...)(T t)
+        int getSomethings(T...)(T)
         {
             return T.length;
         }
@@ -185,6 +186,7 @@ version (unittest)
     struct StructWithFields
     {
         int field;
+
         int get()
         {
             return field;
@@ -194,6 +196,7 @@ version (unittest)
     struct StructWithConstructor
     {
         int field;
+
         this(int i)
         {
             field = i;
@@ -217,7 +220,7 @@ version (unittest)
 
     class TakesFloat
     {
-        public void foo(float a)
+        public void foo(float)
         {
         }
     }
@@ -225,6 +228,7 @@ version (unittest)
     class Property
     {
         private int _foo;
+
         @property int foo()
         {
             return _foo;
@@ -748,50 +752,6 @@ version (none) unittest
     assert(obj.get(1) == "int");
     auto tm = new TemplateMethods();
     assert(obj.getSomethings(1, 2, 3) == 3);
-    mocker.verify;
-}
-
-@("struct")
-version (none) unittest
-{
-    auto mocker = new Mocker;
-    auto obj = mocker.mockStruct!(Struct);
-    mocker.expect(obj.get).passThrough;
-    mocker.replay;
-    assert(obj.get() == 1);
-    mocker.verify;
-}
-
-@("struct with fields")
-version (none) unittest
-{
-    auto mocker = new Mocker;
-    auto obj = mocker.mockStruct!(StructWithFields)(5);
-    mocker.expect(obj.get).passThrough;
-    mocker.replay;
-    assert(obj.get() == 5);
-    mocker.verify;
-}
-
-@("struct with fields")
-version (none) unittest
-{
-    auto mocker = new Mocker;
-    auto obj = mocker.mockStruct!(StructWithConstructor)(5);
-    mocker.expect(obj.get).passThrough;
-    mocker.replay;
-    assert(obj.get() == 5);
-    mocker.verify;
-}
-
-@("struct with no underlying object")
-version (none) unittest
-{
-    auto mocker = new Mocker;
-    auto obj = mocker.mockStructPassTo(StructWithConstructor.init);
-    mocker.expect(obj.get).returns(6);
-    mocker.replay;
-    assert(obj.get() == 6);
     mocker.verify;
 }
 

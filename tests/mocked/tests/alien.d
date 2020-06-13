@@ -778,12 +778,9 @@ unittest
 
     enum float argument = 1.0f;
 
-    Mocker mocker;
+    auto mocker = configure!(Comparator!((float a, float b) => abs(a - b) < 0.1f));
     auto dependency = mocker.mock!TakesFloat;
-    dependency.expect
-        .foo(argument)
-        .customArgsComparator(a => abs(a - argument) < 0.1f)
-        .repeat(2);
+    dependency.expect.foo(argument).repeat(2);
 
     // custom comparison example - treat similar floats as equals
     dependency.foo(1.01);

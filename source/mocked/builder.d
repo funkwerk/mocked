@@ -127,9 +127,17 @@ if (isCallable!F)
     {
         Return return_ = Return.init;
 
-        public ref typeof(this) returns(Return return_)
+        /**
+         * Set the value to return when method matching this expectation is called on a mock object.
+         *
+         * Params:
+         *     value = the value to return
+         *
+         * Returns: $(D_KEYWORD this).
+         */
+        public ref typeof(this) returns(Return value)
         {
-            this.return_ = return_;
+            this.return_ = value;
 
             return this;
         }
@@ -158,6 +166,11 @@ if (isCallable!F)
         return this;
     }
 
+    /**
+     * This expectation will match to any number of calls.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
     public ref typeof(this) repeatAny()
     {
         this.repeat_ = 0;
@@ -165,6 +178,18 @@ if (isCallable!F)
         return this;
     }
 
+    /**
+     * This expectation will match exactly $(D_PARAM times) times.
+     *
+     * Preconditions:
+     *
+     * $(D_CODE times > 0).
+     *
+     * Params:
+     *     times = The number of calls the expectation will match.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
     public ref typeof(this) repeat(uint times)
     in (times > 0)
     {
@@ -189,6 +214,15 @@ if (isCallable!F)
         return true;
     }
 
+    /**
+     * Allow providing custom argument comparator for matching calls to this expectation.
+     *
+     * Params:
+     *     comaprator = The functions used to compare the arguments.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
+    deprecated("Use mocked.Comparator instead")
     public ref typeof(this) customArgsComparator(CustomArgsComparator comparator)
     in (comparator !is null)
     {
@@ -197,6 +231,16 @@ if (isCallable!F)
         return this;
     }
 
+    /**
+     * When the method which matches this expectation is called, throw the given
+     * exception. If there are any actions specified (via the action method),
+     * they will not be executed.
+     *
+     * Params:
+     *     exception = The exception to throw.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
     public ref typeof(this) throws(Exception exception)
     {
         this.exception = exception;
@@ -230,6 +274,7 @@ if (isCallable!F)
  */
 struct Overload(alias F)
 {
+    /// Single mocked method call.
     alias Call = .Call!F;
 
     /// Return type of the mocked method.
@@ -248,11 +293,17 @@ struct Overload(alias F)
 
     Call[] calls;
 
+    /**
+     * Returns: Whether any expected calls are in the queue.
+     */
     public @property bool empty()
     {
         return this.calls.empty;
     }
 
+    /**
+     * Returns: The next expected call.
+     */
     public ref Call front()
     in (!this.calls.empty)
     {
@@ -265,6 +316,9 @@ struct Overload(alias F)
         return this.calls.back;
     }
 
+    /**
+      * Removes the next expected call from the queue.
+      */
     public void popFront()
     {
         this.calls.popFront;
@@ -275,6 +329,9 @@ struct Overload(alias F)
         this.calls.popBack;
     }
 
+    /**
+     * Clears the queue.
+     */
     public void clear()
     {
         this.calls = [];

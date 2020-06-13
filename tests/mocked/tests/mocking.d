@@ -356,3 +356,15 @@ unittest
 
     static assert(is(typeof(dependency.expect.act().action(action))));
 }
+
+@("arguments can be const objects")
+unittest
+{
+    interface A
+    {
+        void func(const Object);
+    }
+    Mocker mocker;
+
+    static assert(is(typeof(mocker.mock!A())));
+}

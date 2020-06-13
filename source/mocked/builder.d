@@ -238,6 +238,9 @@ struct Overload(alias F)
     // Parameters accepted by the mocked method.
     alias Parameters = Call.Parameters;
 
+    /// Arguments passed to set the expectation up.
+    alias Arguments = staticMap!(Unqual, Parameters);
+
     /// Attribute set of the mocked method.
     alias qualifiers = Call.qualifiers;
 
@@ -301,7 +304,7 @@ struct ExpectationSetup(T, string member)
             }
         }
 
-        ref Overload.Call opCall(Overload.Parameters arguments)
+        ref Overload.Call opCall(Overload.Arguments arguments)
         {
             typeof(return) call;
 

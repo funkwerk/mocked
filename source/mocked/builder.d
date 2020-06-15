@@ -33,6 +33,11 @@ final class Mocked(T) : Verifiable
         return this.mock;
     }
 
+    /**
+     * Verifies that certain expectation requirements were satisfied.
+     *
+     * Throws: $(D_PSYMBOL ExpectationViolationException) if those issues occur.
+     */
     void verify()
     {
         scope (failure)
@@ -93,25 +98,31 @@ final class Mocked(T) : Verifiable
  *     F = Function represented by this $(D_PSYMBOL Call).
  */
 struct Call(alias F)
-if (isCallable!F)
 {
     /// Return type of the mocked method.
     alias Return = ReturnType!F;
 
     // Parameters accepted by the mocked method.
-    alias Parameters = .Parameters!F;
+    alias ParameterTypes = .Parameters!F;
 
-    /// Arguments passed to set the expectation up.
-    alias Arguments = staticMap!(Unqual, Parameters);
+    static if (is(FunctionTypeOf!F PT == __parameters))
+    {
+        /// Arguments passed to set the expectation up.
+        alias Parameters = PT;
+    }
+    else
+    {
+        static assert(false, typeof(T).stringof ~ " is not a function");
+    }
 
     /// Attribute set of the mocked method.
     alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
 
     private alias concatenatedQualifiers = unwords!qualifiers;
 
-    mixin("alias CustomArgsComparator = bool delegate(Parameters) "
+    mixin("alias CustomArgsComparator = bool delegate(ParameterTypes) "
             ~ concatenatedQualifiers ~ ";");
-    mixin("alias Action = Return delegate(Parameters) "
+    mixin("alias Action = Return delegate(ParameterTypes) "
             ~ concatenatedQualifiers ~ ";");
 
     bool passThrough_ = false;
@@ -121,7 +132,11 @@ if (isCallable!F)
     CustomArgsComparator customArgsComparator_;
     Action action_;
 
-    Maybe!Arguments arguments;
+    /// Expected arguments if any.
+    alias Arguments = Maybe!ParameterTypes;
+
+    /// ditto
+    Arguments arguments;
 
     static if (!is(Return == void))
     {
@@ -198,7 +213,7 @@ if (isCallable!F)
         return this;
     }
 
-    public bool compareArguments(alias options)(Parameters arguments)
+    public bool compareArguments(alias options)(ParameterTypes arguments)
     {
         if (this.customArgsComparator_ !is null)
         {
@@ -281,16 +296,18 @@ struct Overload(alias F)
     alias Return = Call.Return;
 
     // Parameters accepted by the mocked method.
-    alias Parameters = Call.Parameters;
+    alias ParameterTypes = Call.ParameterTypes;
 
     /// Arguments passed to set the expectation up.
-    alias Arguments = staticMap!(Unqual, Parameters);
+    alias Parameters = Call.Parameters;
 
     /// Attribute set of the mocked method.
     alias qualifiers = Call.qualifiers;
 
-    alias ArgumentIdentifiers = ParameterIdentifierTuple!F;
+    /// Expected arguments if any.
+    alias Arguments = Call.Arguments;
 
+    /// Expected calls.
     Call[] calls;
 
     /**
@@ -346,7 +363,7 @@ struct ExpectationSetup(T, string member)
 
     Overloads overloads;
 
-    static foreach (i, Overload; Overloads)
+    static foreach (i, Overload; overloads)
     {
         static if (!is(Overload.Return == void))
         {
@@ -361,14 +378,14 @@ struct ExpectationSetup(T, string member)
             }
         }
 
-        ref Overload.Call opCall(Overload.Arguments arguments)
+        ref Overload.Call opCall(Overload.Parameters arguments)
         {
             typeof(return) call;
 
             call.arguments = arguments;
-            this.overloads[i].calls ~= call;
+            Overload.calls ~= call;
 
-            return this.overloads[i].back;
+            return Overload.back;
         }
     }
 }

@@ -4,31 +4,41 @@ import std.format : format;
 import std.meta;
 import std.typecons;
 
+/**
+ * $(D_PSYMBOL Maybe) optionally saves a tuple of values. The values can't be
+ * set individually, but only at once.
+ */
 struct Maybe(Arguments...)
 {
     private Nullable!(Tuple!Arguments) arguments_;
 
+    /// Tuple length.
     public enum size_t length = Arguments.length;
 
-    public static Maybe!Arguments opCall(Arguments arguments)
-    {
-        typeof(return) ret;
-
-        ret.arguments_ = tuple!Arguments(arguments);
-
-        return ret;
-    }
-
+    /**
+     * Params:
+     *     arguments = Values to be assigned.
+     */
     public void opAssign(Arguments arguments)
     {
         this.arguments_ = tuple!Arguments(arguments);
     }
 
+    /**
+     * Returns: $(D_KEYWORD true) if the tuple is set, $(D_KEYWORD false)
+     * otherwise.
+     */
     public @property bool isNull()
     {
         return this.arguments_.isNull;
     }
 
+    /**
+     * Params:
+     *     n = Value position in the tuple.
+     *
+     * Returns: nth value in the tuple.
+     */
     public @property ref Arguments[n] get(size_t n)()
     if (n < Arguments.length)
     in (!this.isNull())

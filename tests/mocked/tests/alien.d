@@ -164,7 +164,7 @@ version (unittest)
     {
         string get(T)(T)
         {
-            import std.traits;
+            import std.traits : fullyQualifiedName;
 
             return fullyQualifiedName!T;
         }
@@ -774,7 +774,7 @@ unittest
 @("customArgsComparator")
 unittest
 {
-    import std.math;
+    import std.math : abs;
 
     enum float argument = 1.0f;
 

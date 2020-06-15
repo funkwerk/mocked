@@ -9,13 +9,13 @@ import std.format : format;
 import std.traits;
 
 private enum string overloadingCode = q{
-    %2$s Overload.Return %1$s(Overload.Parameters arguments)
+    %2$s Overload.Return %1$s(Overload.ParameterTypes arguments)
     {
         auto overloads = __traits(getMember, builder, "%1$s").overloads[i];
 
         if (overloads.empty)
         {
-            throw unexpectedCallError!(typeof(super), Overload.Parameters)("%1$s", arguments);
+            throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)("%1$s", arguments);
         }
         if (!overloads.front.ignoreArgs_
                 && !overloads.front.compareArguments!options(arguments))
@@ -23,7 +23,7 @@ private enum string overloadingCode = q{
             __traits(getMember, builder, "%1$s").overloads[i].clear();
 
             throw unexpectedArgumentError!(typeof(super),
-                    Overload.Parameters, Maybe!(Overload.Call.Arguments))(
+                    Overload.ParameterTypes, Overload.Arguments)(
                     "%1$s", arguments, overloads.front.arguments);
         }
 
@@ -89,7 +89,7 @@ private enum string overloadingCode = q{
 /**
  * Mocker instance with default options.
  *
- * See_Also: $(D_PSYMBOL Factory).
+ * See_Also: $(D_PSYMBOL Factory), $(D_PSYMBOL configure).
  */
 alias Mocker = Factory!(Options!());
 
@@ -99,8 +99,7 @@ alias Mocker = Factory!(Options!());
  * Params:
  *     Args = Mocker options.
  *
- * See_Also: $(D_PSYMBOL Factory).
- * See_Also: $(D_PSYMBOL Mocker).
+ * See_Also: $(D_PSYMBOL Factory), $(D_PSYMBOL Mocker).
  */
 auto configure(Args...)()
 {
@@ -126,7 +125,10 @@ struct Factory(Options)
      *
      * Params:
      *     T = The type to mock.
-     *     Args = Constructor arguments.
+     *     Args = Constructor parameter types.
+     *     args = Constructor arguments.
+     *
+     * Returns: A mock builder.
      */
     auto mock(T, Args...)(Args args)
     {
@@ -174,6 +176,11 @@ struct Factory(Options)
         return repository;
     }
 
+    /**
+     * Verifies that certain expectation requirements were satisfied.
+     *
+     * Throws: $(D_PSYMBOL ExpectationViolationException) if those issues occur.
+     */
     void verify()
     {
         foreach (repository; this.repositories)

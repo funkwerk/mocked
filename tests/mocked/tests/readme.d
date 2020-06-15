@@ -1,9 +1,9 @@
 module mocked.tests.readme;
 
+import mocked;
+
 unittest
 {
-    import mocked;
-
     static class Dependency
     {
         string authorOf(string phrase)
@@ -29,7 +29,6 @@ unittest
 
 unittest
 {
-    import mocked;
     import std.math : fabs;
 
     static class Dependency

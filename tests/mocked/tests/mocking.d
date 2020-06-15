@@ -366,7 +366,7 @@ unittest
     }
     Mocker mocker;
 
-    static assert(is(typeof(mocker.mock!A())));
+    mocker.mock!A();
 }
 
 @("supports struct with immutable members as arguments")
@@ -383,4 +383,24 @@ unittest
         }
     }
    static assert(is(typeof(Mocker().mock!Dependency())));
+}
+
+@("supports default parameters")
+unittest
+{
+    enum string expected = "simplex sigillum veri";
+
+    static class Dependency
+    {
+        void say(string = expected)
+        {
+        }
+    }
+    Mocker mocker;
+
+    auto mocked = mocker.mock!Dependency;
+
+    mocked.expect.say();
+
+    mocked.say(expected);
 }

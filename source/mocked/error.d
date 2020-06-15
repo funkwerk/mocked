@@ -68,7 +68,7 @@ final class UnexpectedCallError : Error
         super("Unexpected call", file, line, nextInChain);
     }
 
-    public override string toString()
+    public override string toString() const
     {
         return format!"%s: %s(%(%s, %))\n\n---\n%s"(this.msg,
                 this.name, this.arguments, this.info);
@@ -141,7 +141,7 @@ final class UnexpectedArgumentError : Error
         super("Expectation failure", file, line, nextInChain);
     }
 
-    public override string toString()
+    public override string toString() const
     {
         auto message = appender!string();
 
@@ -196,7 +196,7 @@ final class ExpectationViolationException : Exception
         super("Expected method not called", file, line, nextInChain);
     }
 
-    public override string toString()
+    public override string toString() const
     {
         return format!"%s: %s(%(%s, %))\n\n---\n%s"(this.msg,
                 this.name, this.arguments, this.info);

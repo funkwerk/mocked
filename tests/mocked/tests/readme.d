@@ -22,7 +22,7 @@ unittest
         .authorOf("[T]he meaning of a word is its use in the language.")
         .returns(expected);
 
-    auto dependency = builder.getMock;
+    auto dependency = builder.get;
 
     assert(dependency.authorOf(phrase) == expected);
 }
@@ -48,7 +48,7 @@ unittest
 
     builder.expect.call(1.01);
 
-    auto mock = builder.getMock;
+    auto mock = builder.get;
 
     mock.call(1.02);
 

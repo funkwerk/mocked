@@ -28,7 +28,7 @@ final class Mocked(T) : Verifiable
         return *this.repository;
     }
 
-    ref T getMock() @nogc nothrow pure @safe
+    ref T get() @nogc nothrow pure @safe
     {
         return this.mock;
     }
@@ -69,26 +69,26 @@ final class Mocked(T) : Verifiable
     {
         override size_t toHash()
         {
-            return getMock().toHash();
+            return get().toHash();
         }
 
         override string toString()
         {
-            return getMock().toString();
+            return get().toString();
         }
 
         override int opCmp(Object o)
         {
-            return getMock().opCmp(o);
+            return get().opCmp(o);
         }
 
         override bool opEquals(Object o)
         {
-            return getMock().opEquals(o);
+            return get().opEquals(o);
         }
     }
 
-    alias getMock this;
+    alias get this;
 }
 
 /**

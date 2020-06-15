@@ -445,7 +445,7 @@ unittest
     mock.expect.toHash().passThrough().repeatAny;
     mock.expect.opEquals(null).ignoreArgs().passThrough().repeatAny;
 
-    auto obj = mock.getMock;
+    auto obj = mock.get;
 
     int[Object] i;
     i[obj] = 5;
@@ -565,7 +565,7 @@ unittest
 
     obj.expect.foo("hallo");
 
-    obj.getMock.foo("hallo");
+    obj.get.foo("hallo");
 
     mocker.verify;
 }
@@ -578,7 +578,7 @@ unittest
 
     obj.expect.foo("hallo");
 
-    obj.getMock.foo("hallo");
+    obj.get.foo("hallo");
 
     mocker.verify;
 }
@@ -600,12 +600,15 @@ unittest
 unittest
 {
     Mocker mocker;
-    auto obj = mocker.mock!(IRM);
-    auto imBuilder = mocker.mock!(IM);
-    auto im = imBuilder.getMock;
 
-    obj.expect.get().returns(im);
-    obj.expect.set(im);
+    auto objBuilder = mocker.mock!IRM;
+    auto obj = objBuilder.get;
+
+    auto imBuilder = mocker.mock!IM;
+    auto im = imBuilder.get;
+
+    objBuilder.expect.get().returns(im);
+    objBuilder.expect.set(im);
 
     obj.get.should.be(im);
     obj.set(im);

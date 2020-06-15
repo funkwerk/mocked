@@ -44,7 +44,7 @@ unittest
 
     mock.expect.toString().returns(expected).repeatAny;
 
-    Object object = mock.getMock;
+    Object object = mock.get;
 
     object.toString.should.equal(expected);
     object.toString.should.equal(expected);
@@ -63,7 +63,7 @@ unittest
     }
     Mocker mocker;
 
-    auto mock = mocker.mock!Dependency.getMock;
+    auto mock = mocker.mock!Dependency.get;
 
     mock.say("Ton der Jugend", "zu laut.")
         .should.throwAn!UnexpectedCallError

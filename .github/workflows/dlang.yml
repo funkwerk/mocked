@@ -19,7 +19,7 @@ jobs:
     - name: Setup DMD
       uses: WebFreak001/setup-dmd@v1
       with:
-        dmd-version: 2.092.0
+        dmd-version: 2.092.1
 
     - name: Build library
       run: dub build
@@ -34,7 +34,6 @@ jobs:
 
   audit:
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v2
@@ -42,7 +41,7 @@ jobs:
     - name: Setup DMD
       uses: WebFreak001/setup-dmd@v1
       with:
-        dmd-version: 2.092.0
+        dmd-version: 2.092.1
 
     - name: Build D-Scanner
       run: dub build dscanner

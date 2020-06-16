@@ -42,24 +42,24 @@ final class Mocked(T) : Verifiable
     {
         scope (failure)
         {
-            static foreach (expectation; this.repository.ExpectationTuple)
+            static foreach (i, expectation; this.repository.ExpectationTuple)
             {
-                static foreach (i, Overload; expectation.Overloads)
+                static foreach (j, Overload; expectation.Overloads)
                 {
-                    __traits(getMember, repository, expectation.name).overloads[i].clear();
+                    this.repository.expectationTuple[i].overloads[j].clear();
                 }
             }
         }
 
-        static foreach (expectation; this.repository.ExpectationTuple)
+        static foreach (i, expectation; this.repository.ExpectationTuple)
         {
-            static foreach (i, Overload; expectation.Overloads)
+            static foreach (j, Overload; expectation.Overloads)
             {
-                if (!__traits(getMember, this.repository, expectation.name).overloads[i].empty
-                        && __traits(getMember, this.repository, expectation.name).overloads[i].front.repeat_ > 0)
+                if (!this.repository.expectationTuple[i].overloads[j].empty
+                        && this.repository.expectationTuple[i].overloads[j].front.repeat_ > 0)
                 {
                     throw expectationViolationException!T(expectation.name,
-                            __traits(getMember, this.repository, expectation.name).overloads[i].front.arguments);
+                            this.repository.expectationTuple[i].overloads[j].front.arguments);
                 }
             }
         }
@@ -174,6 +174,7 @@ struct Call(alias F)
         return this;
     }
 
+    deprecated("Just skip the argument setup")
     public ref typeof(this) ignoreArgs()
     {
         this.ignoreArgs_ = true;
@@ -355,6 +356,13 @@ struct Overload(alias F)
     }
 }
 
+/**
+ * $(D_PSYMBOL ExpectationSetup) contains all overloads of a single method.
+ *
+ * Params:
+ *     T = Mocked type.
+ *     member = Mocked method name.
+ */
 struct ExpectationSetup(T, string member)
 {
     enum string name = member;
@@ -362,45 +370,86 @@ struct ExpectationSetup(T, string member)
     alias Overloads = staticMap!(Overload, __traits(getOverloads, T, member));
 
     Overloads overloads;
-
-    static foreach (i, Overload; overloads)
-    {
-        static if (!is(Overload.Return == void))
-        {
-            ref Overload.Call returns(Overload.Return return_)
-            {
-                typeof(return) call;
-
-                call.returns(return_);
-                this.overloads[i].calls ~= call;
-
-                return this.overloads[i].back;
-            }
-        }
-
-        ref Overload.Call opCall(Overload.Parameters arguments)
-        {
-            typeof(return) call;
-
-            call.arguments = arguments;
-            Overload.calls ~= call;
-
-            return Overload.back;
-        }
-    }
 }
 
+/**
+ * $(D_PSYMBOL Repository) contains all mocked methods of a single class.
+ *
+ * Params:
+ *     T = Mocked type.
+ */
 struct Repository(T)
 if (isPolymorphicType!T)
 {
     private alias VirtualMethods = Filter!(ApplyLeft!(isVirtualMethod, T), __traits(allMembers, T));
 
     alias ExpectationTuple = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
+    ExpectationTuple expectationTuple;
 
     static foreach (i, member; VirtualMethods)
     {
-        mixin("ExpectationTuple[i] " ~ member ~ ";");
+        static foreach (j, overload; ExpectationTuple[i].Overloads)
+        {
+            mixin(format!repositoryProperty(member, i, j));
+        }
+
+        static if (!anySatisfy!(hasNoArguments, ExpectationTuple[i].Overloads))
+        {
+            mixin(format!repositoryProperty0(member, i));
+        }
     }
 }
 
-private enum isVirtualMethod(T, string member) = __traits(isVirtualMethod, __traits(getMember, T, member));
+private enum string repositoryProperty0 = q{
+    @property ref auto %1$s(Args...)()
+    {
+        static if (Args.length == 0)
+        {
+            enum ptrdiff_t index = 0;
+        }
+        else
+        {
+            enum ptrdiff_t index = matchArguments!(Pack!Args, ExpectationTuple[%2$s].Overloads);
+        }
+        static assert(index >= 0,
+                "%1$s overload with the given argument types could not be found");
+
+        ExpectationTuple[%2$s].Overloads[index].Call call;
+        this.expectationTuple[%2$s].overloads[index].calls ~= call;
+        return this.expectationTuple[%2$s].overloads[index].back;
+    }
+};
+
+private enum string repositoryProperty = q{
+    @property ref auto %1$s(overload.Parameters arguments)
+    {
+        overload.Call call;
+        call.arguments = arguments;
+        this.expectationTuple[%2$s].overloads[%3$s].calls ~= call;
+        return this.expectationTuple[%2$s].overloads[%3$s].back;
+    }
+};
+
+private template matchArguments(Needle, Haystack...)
+{
+    private template matchArgumentsImpl(ptrdiff_t i, Haystack...)
+    {
+        static if (Haystack.length == 0)
+        {
+            enum ptrdiff_t matchArgumentsImpl = -1;
+        }
+        else static if (__traits(isSame, Needle, Pack!(Haystack[0].ParameterTypes)))
+        {
+            enum ptrdiff_t matchArgumentsImpl = i;
+        }
+        else
+        {
+            enum ptrdiff_t matchArgumentsImpl = matchArgumentsImpl!(i + 1, Haystack[1 .. $]);
+        }
+    }
+    enum ptrdiff_t matchArguments = matchArgumentsImpl!(0, Haystack);
+}
+
+private enum bool hasNoArguments(T) = T.Parameters.length == 0;
+private enum isVirtualMethod(T, string member) =
+    __traits(isVirtualMethod, __traits(getMember, T, member));

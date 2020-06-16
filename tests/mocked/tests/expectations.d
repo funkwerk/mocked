@@ -132,3 +132,45 @@ unittest
                 `Expected method not called: Dependency.say("` ~ phrase ~ `")`
         );
 }
+
+@("allows to pick the overload without specifying the arguments")
+unittest
+{
+    enum string expected = "ad nullius rei essentiam pertinet existentia";
+    static class Dependency
+    {
+        string show(bool x)
+        {
+            return x ? "true" : "false";
+        }
+
+        string show(string x)
+        {
+            return x;
+        }
+    }
+    Mocker mocker;
+
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect.show!string.returns(expected);
+
+    auto dependency = mock.get;
+
+    dependency.show(null).should.equal(expected);
+}
+
+@("allows to pick the overload without specifying the arguments")
+unittest
+{
+    static class Dependency
+    {
+        void show(string, string)
+        {
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+
+    static assert(!is(typeof(mock.expect.show!string)));
+}

@@ -442,8 +442,8 @@ unittest
     Mocker mocker;
 
     auto mock = mocker.mock!(Object);
-    mock.expect.toHash().passThrough().repeatAny;
-    mock.expect.opEquals(null).ignoreArgs().passThrough().repeatAny;
+    mock.expect.toHash.passThrough().repeatAny;
+    mock.expect.opEquals.passThrough().repeatAny;
 
     auto obj = mock.get;
 

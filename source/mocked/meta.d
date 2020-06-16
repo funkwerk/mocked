@@ -71,6 +71,30 @@ template unwords(Args...)
     }
 }
 
+/**
+ * Holds a typed sequence of template parameters.
+ *
+ * Params:
+ *     Args = Elements of this $(D_PSYMBOL Pack).
+ */
+struct Pack(Args...)
+{
+    /// Elements in this tuple as $(D_PSYMBOL AliasSeq).
+    alias Seq = Args;
+
+    /// The length of the tuple.
+    enum size_t length = Args.length;
+
+    alias Seq this;
+}
+
+/**
+ * Params:
+ *     T = Some type.
+ *
+ * Returns: $(D_KEYWORD true) if $(D_PARAM T) is a class or interface,
+ * $(D_KEYWORD false) otherwise.
+ */
 enum bool isPolymorphicType(T) = is(T == class) || is(T == interface);
 
 enum bool canFind(alias T, Args...) = staticIndexOf!(T, Args) != -1;

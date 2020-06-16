@@ -11,7 +11,7 @@ import std.traits;
 private enum string overloadingCode = q{
     %2$s Overload.Return %1$s(Overload.ParameterTypes arguments)
     {
-        auto overloads = __traits(getMember, builder, "%1$s").overloads[i];
+        auto overloads = builder.expectationTuple[j].overloads[i];
 
         if (overloads.empty)
         {
@@ -20,7 +20,7 @@ private enum string overloadingCode = q{
         if (!overloads.front.ignoreArgs_
                 && !overloads.front.compareArguments!options(arguments))
         {
-            __traits(getMember, builder, "%1$s").overloads[i].clear();
+            builder.expectationTuple[j].overloads[i].clear();
 
             throw unexpectedArgumentError!(typeof(super),
                     Overload.ParameterTypes, Overload.Arguments)(
@@ -63,13 +63,13 @@ private enum string overloadingCode = q{
             }
         }
 
-        if (__traits(getMember, builder, "%1$s").overloads[i].front.repeat_ > 1)
+        if (builder.expectationTuple[j].overloads[i].front.repeat_ > 1)
         {
-            --__traits(getMember, builder, "%1$s").overloads[i].front.repeat_;
+            --builder.expectationTuple[j].overloads[i].front.repeat_;
         }
-        else if (__traits(getMember, builder, "%1$s").overloads[i].front.repeat_ == 1)
+        else if (builder.expectationTuple[j].overloads[i].front.repeat_ == 1)
         {
-            __traits(getMember, builder, "%1$s").overloads[i].popFront;
+            builder.expectationTuple[j].overloads[i].popFront;
         }
 
         static if (!canFind!("nothrow", Overload.qualifiers))
@@ -151,7 +151,7 @@ struct Factory(Options)
                 }
             }
 
-            static foreach (expectation; builder.ExpectationTuple)
+            static foreach (j, expectation; builder.ExpectationTuple)
             {
                 static foreach (i, Overload; expectation.Overloads)
                 {

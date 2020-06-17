@@ -414,8 +414,8 @@ private enum string repositoryProperty0 = q{
         static assert(index >= 0,
                 "%1$s overload with the given argument types could not be found");
 
-        ExpectationTuple[%2$s].Overloads[index].Call call;
-        this.expectationTuple[%2$s].overloads[index].calls ~= call;
+        this.expectationTuple[%2$s].overloads[index].calls ~=
+            ExpectationTuple[%2$s].Overloads[index].Call();
         return this.expectationTuple[%2$s].overloads[index].back;
     }
 };
@@ -423,9 +423,8 @@ private enum string repositoryProperty0 = q{
 private enum string repositoryProperty = q{
     ref auto %1$s(overload.Parameters arguments)
     {
-        overload.Call call;
-        call.arguments = arguments;
-        this.expectationTuple[%2$s].overloads[%3$s].calls ~= call;
+        this.expectationTuple[%2$s].overloads[%3$s].calls ~= overload.Call();
+        this.expectationTuple[%2$s].overloads[%3$s].back.arguments = arguments;
         return this.expectationTuple[%2$s].overloads[%3$s].back;
     }
 };

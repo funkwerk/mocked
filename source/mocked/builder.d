@@ -401,7 +401,7 @@ if (isPolymorphicType!T)
 }
 
 private enum string repositoryProperty0 = q{
-    @property ref auto %1$s(Args...)()
+    ref auto %1$s(Args...)()
     {
         static if (Args.length == 0)
         {
@@ -421,7 +421,7 @@ private enum string repositoryProperty0 = q{
 };
 
 private enum string repositoryProperty = q{
-    @property ref auto %1$s(overload.Parameters arguments)
+    ref auto %1$s(overload.Parameters arguments)
     {
         overload.Call call;
         call.arguments = arguments;

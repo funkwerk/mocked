@@ -404,3 +404,16 @@ unittest
 
     mocked.say(expected);
 }
+
+@("can mock functions with more than 2 parameters")
+unittest
+{
+    static class Dependency
+    {
+        void say(string, string, string)
+        {
+        }
+    }
+    Mocker mocker;
+    static assert(is(typeof(mocker.mock!Dependency())));
+}

@@ -36,7 +36,9 @@ auto dependency = builder.getMock;
 assert(dependency.authorOf(phrase) == expected);
 ```
 
-## Why are mocks useful?
+## Introduction
+
+### Why are mocks useful?
 
 Assuming that you've decided to use unit tests (if you didn't you're wrong), you
 need a strategy for keeping scope of your unit tests small, so they only test
@@ -68,11 +70,53 @@ DB connection. This way, only the code you want to test is tested, nothing more.
 More examples about use of mocks can be found at:
 http://www.youtube.com/watch?v=V98Z11V7kEY
 
-## Why is mockeD useful?
+### Why is mockeD useful?
 
 A mock objects framework allows you to quickly create mock objects, set up
 expectations for them, and check to see whether these expectations have been
 fulfilled. This saves you tedious work of creating those objects manually.
+
+## Expectation setup
+
+### passThrough
+
+Instead of returning or throwing a given value, pass the call through to
+the mocked type object.
+
+```d
+import mocked;
+
+class Dependency
+{
+    bool isTrue()
+    {
+        return true;
+    }
+}
+Mocker mocker;
+auto mock = mocker.mock!Dependency;
+mock.expect.isTrue.passThrough;
+
+assert(mock.get.isTrue);
+```
+
+### returns
+
+Set the value to return when method matching this expectation is called on a
+mock object.
+
+```d
+import mocked;
+
+class Dependency
+{
+}
+Mocker mocker;
+auto mock = mocker.mock!Dependency;
+mock.expect.toString.returns("in abstracto");
+
+assert(mock.get.toString == "in abstracto");
+```
 
 ## Configuration
 

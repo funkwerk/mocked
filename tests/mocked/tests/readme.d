@@ -54,3 +54,31 @@ unittest
 
     mocker.verify;
 }
+
+unittest
+{
+    static class Dependency
+    {
+        bool isTrue()
+        {
+            return true;
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+    mock.expect.isTrue.passThrough;
+
+    assert(mock.get.isTrue);
+}
+
+unittest
+{
+    static class Dependency
+    {
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+    mock.expect.toString.returns("in abstracto");
+
+    assert(mock.get.toString == "in abstracto");
+}

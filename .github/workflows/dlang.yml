@@ -20,6 +20,13 @@ jobs:
       with:
         dmd-version: 2.092.1
 
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: '~/.dub'
+        key: ${{ runner.os }}-test-${{ hashFiles('**/dub.json') }}
+        restore-keys: ${{ runner.os }}-test-
+
     - name: Build library
       run: dub build
 
@@ -41,6 +48,13 @@ jobs:
       uses: WebFreak001/setup-dmd@v1
       with:
         dmd-version: 2.092.1
+
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: '~/.dub'
+        key: ${{ runner.os }}-audit-${{ hashFiles('**/dub.json') }}
+        restore-keys: ${{ runner.os }}-audit-
 
     - name: Build D-Scanner
       run: dub build dscanner

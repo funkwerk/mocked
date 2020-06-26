@@ -1,6 +1,6 @@
 # MockeD
 
-![CI](https://github.com/funkwerk/mocked/workflows/CI/badge.svg)
+[![CI](https://github.com/funkwerk/mocked/workflows/CI/badge.svg)](https://github.com/funkwerk/mocked/actions?query=workflow%3ACI)
 [![License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://raw.githubusercontent.com/funkwerk/mocked/master/LICENSE)
 [![codecov](https://codecov.io/gh/funkwerk/mocked/branch/master/graph/badge.svg)](https://codecov.io/gh/funkwerk/mocked)
 [![Dub version](https://img.shields.io/dub/v/mocked.svg)](https://code.dlang.org/packages/mocked)
@@ -108,14 +108,27 @@ mock object.
 ```d
 import mocked;
 
-class Dependency
-{
-}
 Mocker mocker;
-auto mock = mocker.mock!Dependency;
+auto mock = mocker.mock!Object;
 mock.expect.toString.returns("in abstracto");
 
 assert(mock.get.toString == "in abstracto");
+```
+
+### throws
+
+When the method which matches this expectation is called, throw the given
+exception.
+
+```d
+import mocked;
+import std.exception : assertThrown;
+
+Mocker mocker;
+auto mock = mocker.mock!Object;
+mock.expect.toString.throws(new Exception(""));
+
+assertThrown!Exception(mock.get.toString);
 ```
 
 ## Configuration

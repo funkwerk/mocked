@@ -73,12 +73,20 @@ unittest
 
 unittest
 {
-    static class Dependency
-    {
-    }
     Mocker mocker;
-    auto mock = mocker.mock!Dependency;
+    auto mock = mocker.mock!Object;
     mock.expect.toString.returns("in abstracto");
 
     assert(mock.get.toString == "in abstracto");
+}
+
+unittest
+{
+    import std.exception : assertThrown;
+
+    Mocker mocker;
+    auto mock = mocker.mock!Object;
+    mock.expect.toString.throws(new Exception(""));
+
+    assertThrown!Exception(mock.get.toString);
 }

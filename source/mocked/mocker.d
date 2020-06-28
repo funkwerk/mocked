@@ -4,14 +4,16 @@ import mocked.builder;
 import mocked.error;
 import mocked.meta;
 import mocked.option;
+import std.algorithm;
+import std.container.dlist;
 import std.conv;
 import std.format : format;
 import std.traits;
 
-private enum string overloadingCode = q{
+private enum string mockCode = q{
     %2$s Overload.Return %1$s(Overload.ParameterTypes arguments)
     {
-        auto overloads = builder.expectationTuple[j].overloads[i];
+        auto overloads = repository.expectationTuple[j].overloads[i];
 
         if (overloads.empty)
         {
@@ -20,7 +22,7 @@ private enum string overloadingCode = q{
         if (!overloads.front.ignoreArgs_
                 && !overloads.front.compareArguments!options(arguments))
         {
-            builder.expectationTuple[j].overloads[i].clear();
+            repository.expectationTuple[j].overloads[i].clear();
 
             throw unexpectedArgumentError!(typeof(super),
                     Overload.ParameterTypes, Overload.Arguments)(
@@ -63,13 +65,13 @@ private enum string overloadingCode = q{
             }
         }
 
-        if (builder.expectationTuple[j].overloads[i].front.repeat_ > 1)
+        if (repository.expectationTuple[j].overloads[i].front.repeat_ > 1)
         {
-            --builder.expectationTuple[j].overloads[i].front.repeat_;
+            --repository.expectationTuple[j].overloads[i].front.repeat_;
         }
-        else if (builder.expectationTuple[j].overloads[i].front.repeat_ == 1)
+        else if (repository.expectationTuple[j].overloads[i].front.repeat_ == 1)
         {
-            builder.expectationTuple[j].overloads[i].popFront;
+            repository.expectationTuple[j].overloads[i].popFront;
         }
 
         static if (!canFind!("nothrow", Overload.qualifiers))
@@ -77,6 +79,62 @@ private enum string overloadingCode = q{
             if (overloads.front.exception !is null)
             {
                 throw overloads.front.exception;
+            }
+        }
+        static if (!is(Overload.Return == void))
+        {
+            return ret;
+        }
+    }
+};
+
+private enum string stubCode = q{
+    %2$s Overload.Return %1$s(Overload.ParameterTypes arguments)
+    {
+        auto overload = repository.expectationTuple[j].overloads[i];
+        auto match = overload.find!(call => call.compareArguments!options(arguments));
+
+        static if (is(Overload.Return == void))
+        {
+            if (match.front.action_ !is null)
+            {
+                match.front.action_(arguments);
+            }
+        }
+        else
+        {
+            Overload.Return ret = void;
+
+            if (match.front.action_ !is null)
+            {
+                ret = match.front.action_(arguments);
+            }
+            else
+            {
+                ret = match.front.return_;
+            }
+        }
+
+        static if (!is(T == interface) && is(Overload.Return == void))
+        {
+            if (match.front.passThrough_)
+            {
+                __traits(getMember, super, "%1$s")(arguments);
+            }
+        }
+        else static if (!is(T == interface))
+        {
+            if (match.front.passThrough_)
+            {
+                ret = __traits(getMember, super, "%1$s")(arguments);
+            }
+        }
+
+        static if (!canFind!("nothrow", Overload.qualifiers))
+        {
+            if (match.front.exception !is null)
+            {
+                throw match.front.exception;
             }
         }
         static if (!is(Overload.Return == void))
@@ -117,7 +175,7 @@ auto configure(Args...)()
  */
 struct Factory(Options)
 {
-    Verifiable[] repositories;
+    private DList!Verifiable repositories;
     private enum Options options = Options();
 
     /**
@@ -132,48 +190,37 @@ struct Factory(Options)
      */
     auto mock(T, Args...)(Args args)
     {
-        Repository!T builder;
+        Repository!T repository;
 
-        class Mock : T
-        {
-            static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
-            {
-                this()
-                {
-                    super(args);
-                }
-            }
-            else static if (__traits(hasMember, T, "__ctor"))
-            {
-                this()
-                {
-                    super(Parameters!(T.__ctor).init);
-                }
-            }
-
-            static foreach (j, expectation; builder.ExpectationTuple)
-            {
-                static foreach (i, Overload; expectation.Overloads)
-                {
-                    static if (is(T == class))
-                    {
-                        mixin(format!overloadingCode(expectation.name,
-                                unwords!("override", Overload.qualifiers)));
-                    }
-                    else
-                    {
-                        mixin(format!overloadingCode(expectation.name,
-                                unwords!(Overload.qualifiers)));
-                    }
-                }
-            }
-        }
+        mixin NestedMock!mockCode;
 
         auto mock = new Mock();
-        auto repository = new Mocked!T(mock, builder);
+        auto mocked = new Mocked!T(mock, repository);
 
-        this.repositories ~= repository;
-        return repository;
+        this.repositories.insertBack(mocked);
+        return mocked;
+    }
+
+    /**
+     * Stubs the type $(D_PARAM T).
+     *
+     * Params:
+     *     T = The type to stub.
+     *     Args = Constructor parameter types.
+     *     Args = Constructor arguments.
+     *
+     * Returns: A stub builder.
+     */
+    auto stub(T, Args...)(Args args)
+    if (isPolymorphicType!T)
+    {
+        Repository!T repository;
+
+        mixin NestedMock!stubCode;
+
+        auto stub = new Mock();
+
+        return new Stubbed!T(stub, repository);
     }
 
     /**
@@ -183,14 +230,41 @@ struct Factory(Options)
      */
     void verify()
     {
-        foreach (repository; this.repositories)
-        {
-            repository.verify;
-        }
+        this.repositories.each!(repository => repository.verify);
     }
 
     ~this()
     {
         verify;
     }
+}
+
+/**
+ * Stub builder.
+ *
+ * Params:
+ *     T = Mocked type.
+ */
+final class Stubbed(T) : Builder!T
+{
+    /**
+     * Params:
+     *     mock = Mocked object.
+     *     repository = Repository used to set up expectations.
+     */
+    this(T mock, ref Repository!T repository)
+    {
+        get = mock;
+        this.repository = &repository;
+    }
+
+    /**
+     * Returns: Repository used to set up stubbed methods.
+     */
+    ref Repository!T stub()
+    {
+        return *this.repository;
+    }
+
+    alias get this;
 }

@@ -10,4 +10,5 @@ mixin runTestsMain!(
     mocked.tests.mocking,
     mocked.tests.option,
     mocked.tests.readme,
+    mocked.tests.stub,
 );

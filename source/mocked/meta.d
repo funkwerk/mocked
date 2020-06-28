@@ -45,6 +45,19 @@ struct Maybe(Arguments...)
     {
         return this.arguments_.get[n];
     }
+
+    /**
+     * Returns: Value tuple.
+     *
+     * Preconditions:
+     *
+     * $(D_CODE !isNull).
+     */
+    public @property ref Tuple!Arguments get()
+    in (!isNull)
+    {
+        return this.arguments_.get;
+    }
 }
 
 /**

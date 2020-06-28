@@ -12,25 +12,31 @@ interface Verifiable
     void verify();
 }
 
-final class Mocked(T) : Verifiable
+/**
+ * Mock builder.
+ *
+ * Params:
+ *     T = Mocked type.
+ */
+final class Mocked(T) : Builder!T, Verifiable
 {
-    T mock;
-    Repository!T* repository;
-
+    /**
+     * Params:
+     *     mock = Mocked object.
+     *     repository = Repository used to set up expectations.
+     */
     this(T mock, ref Repository!T repository)
     {
-        this.mock = mock;
+        get = mock;
         this.repository = &repository;
     }
 
+    /**
+     * Returns: Repository used to set up expectations.
+     */
     ref Repository!T expect()
     {
         return *this.repository;
-    }
-
-    ref T get() @nogc nothrow pure @safe
-    {
-        return this.mock;
     }
 
     /**
@@ -62,29 +68,6 @@ final class Mocked(T) : Verifiable
                             this.repository.expectationTuple[i].overloads[j].front.arguments);
                 }
             }
-        }
-    }
-
-    static if (is(T == class))
-    {
-        override size_t toHash()
-        {
-            return get().toHash();
-        }
-
-        override string toString()
-        {
-            return get().toString();
-        }
-
-        override int opCmp(Object o)
-        {
-            return get().opCmp(o);
-        }
-
-        override bool opEquals(Object o)
-        {
-            return get().opEquals(o);
         }
     }
 
@@ -328,6 +311,9 @@ struct Overload(alias F)
         return this.calls.front;
     }
 
+    /**
+     * Returns: The last expected call.
+     */
     public ref Call back()
     in (!this.calls.empty)
     {
@@ -342,6 +328,9 @@ struct Overload(alias F)
         this.calls.popFront;
     }
 
+    /**
+      * Removes the last expected call from the queue.
+      */
     public void popBack()
     {
         this.calls.popBack;
@@ -452,3 +441,84 @@ private template matchArguments(Needle, Haystack...)
 private enum bool hasNoArguments(T) = T.Parameters.length == 0;
 private enum isVirtualMethod(T, string member) =
     __traits(isVirtualMethod, __traits(getMember, T, member));
+
+/**
+ * Mock builder used by the mocks and stubs.
+ *
+ * Params:
+ *     T = Mocked type.
+ */
+abstract class Builder(T)
+{
+    private T mock;
+    protected Repository!T* repository;
+
+    /**
+     * Returns: Mocked object.
+     */
+    ref T get() @nogc nothrow pure @safe
+    {
+        return this.mock;
+    }
+
+    static if (is(T == class))
+    {
+        override size_t toHash()
+        {
+            return get().toHash();
+        }
+
+        override string toString()
+        {
+            return get().toString();
+        }
+
+        override int opCmp(Object o)
+        {
+            return get().opCmp(o);
+        }
+
+        override bool opEquals(Object o)
+        {
+            return get().opEquals(o);
+        }
+    }
+}
+
+mixin template NestedMock(string overloadingCode)
+{
+    class Mock : T
+    {
+        static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
+        {
+            this()
+            {
+                super(args);
+            }
+        }
+        else static if (__traits(hasMember, T, "__ctor"))
+        {
+            this()
+            {
+                super(Parameters!(T.__ctor).init);
+            }
+        }
+
+        static foreach (j, expectation; repository.ExpectationTuple)
+        {
+            static foreach (i, Overload; expectation.Overloads)
+            {
+                static if (is(T == class))
+                {
+                    mixin(format!overloadingCode(expectation.name,
+                            unwords!("override", Overload.qualifiers)));
+                }
+                else
+                {
+                    mixin(format!overloadingCode(expectation.name,
+                            unwords!(Overload.qualifiers)));
+                }
+            }
+        }
+    }
+}

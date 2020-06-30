@@ -11,136 +11,135 @@ import std.format : format;
 import std.traits;
 
 private enum string mockCode = q{
-    %2$s Overload.Return %1$s(Overload.ParameterTypes arguments)
+    auto overloads = &repository.expectationTuple[j].overloads[i];
+
+    if (overloads.empty)
     {
-        auto overloads = repository.expectationTuple[j].overloads[i];
+        throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
+    }
+    if (!overloads.front.ignoreArgs_
+            && !overloads.front.compareArguments!options(arguments))
+    {
+        auto overloadArguments = overloads.front.arguments;
 
-        if (overloads.empty)
+        overloads.clear();
+
+        throw unexpectedArgumentError!(typeof(super),
+                Overload.ParameterTypes, Overload.Arguments)(
+                expectation.name, arguments, overloadArguments);
+    }
+
+    scope(exit)
+    {
+        if (overloads.front.repeat_ > 1)
         {
-            throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)("%1$s", arguments);
+            --overloads.front.repeat_;
         }
-        if (!overloads.front.ignoreArgs_
-                && !overloads.front.compareArguments!options(arguments))
+        else if (overloads.front.repeat_ == 1)
         {
-            repository.expectationTuple[j].overloads[i].clear();
-
-            throw unexpectedArgumentError!(typeof(super),
-                    Overload.ParameterTypes, Overload.Arguments)(
-                    "%1$s", arguments, overloads.front.arguments);
+            overloads.popFront;
         }
+    }
 
-        static if (is(Overload.Return == void))
+    static if (is(Overload.Return == void))
+    {
+        if (overloads.front.action_ !is null)
         {
-            if (overloads.front.action_ !is null)
-            {
-                overloads.front.action_(arguments);
-            }
+            overloads.front.action_(arguments);
+        }
+    }
+    else
+    {
+        Overload.Return ret = void;
+
+        if (overloads.front.action_ !is null)
+        {
+            ret = overloads.front.action_(arguments);
         }
         else
         {
-            Overload.Return ret = void;
+            ret = overloads.front.return_;
+        }
+    }
 
-            if (overloads.front.action_ !is null)
-            {
-                ret = overloads.front.action_(arguments);
-            }
-            else
-            {
-                ret = overloads.front.return_;
-            }
+    static if (!is(T == interface) && is(Overload.Return == void))
+    {
+        if (overloads.front.passThrough_)
+        {
+            __traits(getMember, super, expectation.name)(arguments);
         }
+    }
+    else static if (!is(T == interface))
+    {
+        if (overloads.front.passThrough_)
+        {
+            ret = __traits(getMember, super, expectation.name)(arguments);
+        }
+    }
 
-        static if (!is(T == interface) && is(Overload.Return == void))
+    static if (!canFind!("nothrow", Overload.qualifiers))
+    {
+        if (overloads.front.exception !is null)
         {
-            if (overloads.front.passThrough_)
-            {
-                __traits(getMember, super, "%1$s")(arguments);
-            }
+            throw overloads.front.exception;
         }
-        else static if (!is(T == interface))
-        {
-            if (overloads.front.passThrough_)
-            {
-                ret = __traits(getMember, super, "%1$s")(arguments);
-            }
-        }
-
-        if (repository.expectationTuple[j].overloads[i].front.repeat_ > 1)
-        {
-            --repository.expectationTuple[j].overloads[i].front.repeat_;
-        }
-        else if (repository.expectationTuple[j].overloads[i].front.repeat_ == 1)
-        {
-            repository.expectationTuple[j].overloads[i].popFront;
-        }
-
-        static if (!canFind!("nothrow", Overload.qualifiers))
-        {
-            if (overloads.front.exception !is null)
-            {
-                throw overloads.front.exception;
-            }
-        }
-        static if (!is(Overload.Return == void))
-        {
-            return ret;
-        }
+    }
+    static if (!is(Overload.Return == void))
+    {
+        return ret;
     }
 };
 
 private enum string stubCode = q{
-    %2$s Overload.Return %1$s(Overload.ParameterTypes arguments)
-    {
-        auto overload = repository.expectationTuple[j].overloads[i];
-        auto match = overload.find!(call => call.compareArguments!options(arguments));
+    auto overloads = repository.expectationTuple[j].overloads[i];
+    auto match = overloads.find!(call => call.compareArguments!options(arguments));
 
-        static if (is(Overload.Return == void))
+    static if (is(Overload.Return == void))
+    {
+        if (match.front.action_ !is null)
         {
-            if (match.front.action_ !is null)
-            {
-                match.front.action_(arguments);
-            }
+            match.front.action_(arguments);
+        }
+    }
+    else
+    {
+        Overload.Return ret = void;
+
+        if (match.front.action_ !is null)
+        {
+            ret = match.front.action_(arguments);
         }
         else
         {
-            Overload.Return ret = void;
+            ret = match.front.return_;
+        }
+    }
 
-            if (match.front.action_ !is null)
-            {
-                ret = match.front.action_(arguments);
-            }
-            else
-            {
-                ret = match.front.return_;
-            }
+    static if (!is(T == interface) && is(Overload.Return == void))
+    {
+        if (match.front.passThrough_)
+        {
+            __traits(getMember, super, expectation.name)(arguments);
         }
+    }
+    else static if (!is(T == interface))
+    {
+        if (match.front.passThrough_)
+        {
+            ret = __traits(getMember, super, expectation.name)(arguments);
+        }
+    }
 
-        static if (!is(T == interface) && is(Overload.Return == void))
+    static if (!canFind!("nothrow", Overload.qualifiers))
+    {
+        if (match.front.exception !is null)
         {
-            if (match.front.passThrough_)
-            {
-                __traits(getMember, super, "%1$s")(arguments);
-            }
+            throw match.front.exception;
         }
-        else static if (!is(T == interface))
-        {
-            if (match.front.passThrough_)
-            {
-                ret = __traits(getMember, super, "%1$s")(arguments);
-            }
-        }
-
-        static if (!canFind!("nothrow", Overload.qualifiers))
-        {
-            if (match.front.exception !is null)
-            {
-                throw match.front.exception;
-            }
-        }
-        static if (!is(Overload.Return == void))
-        {
-            return ret;
-        }
+    }
+    static if (!is(Overload.Return == void))
+    {
+        return ret;
     }
 };
 

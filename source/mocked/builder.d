@@ -101,7 +101,7 @@ struct Call(alias F)
     /// Attribute set of the mocked method.
     alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
 
-    private alias concatenatedQualifiers = unwords!qualifiers;
+    private enum concatenatedQualifiers = [qualifiers].join(" ");
 
     mixin("alias CustomArgsComparator = bool delegate(ParameterTypes) "
             ~ concatenatedQualifiers ~ ";");
@@ -489,6 +489,8 @@ mixin template NestedMock(string overloadingCode)
 {
     class Mock : T
     {
+        import std.string : join;
+
         static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
         {
             this()
@@ -508,16 +510,12 @@ mixin template NestedMock(string overloadingCode)
         {
             static foreach (i, Overload; expectation.Overloads)
             {
-                static if (is(T == class))
-                {
-                    mixin(format!overloadingCode(expectation.name,
-                            unwords!("override", Overload.qualifiers)));
-                }
-                else
-                {
-                    mixin(format!overloadingCode(expectation.name,
-                            unwords!(Overload.qualifiers)));
-                }
+                mixin(["override", Overload.qualifiers, "Overload.Return", expectation.name].join(" ") ~ q{
+                    (Overload.ParameterTypes arguments)
+                    {
+                        mixin(overloadingCode);
+                    }
+                });
             }
         }
     }

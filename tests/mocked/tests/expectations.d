@@ -193,3 +193,41 @@ unittest
 
     static assert(!is(typeof(mock.expect.show!string)));
 }
+
+@("skips private overloads")
+unittest
+{
+    static class Dependency
+    {
+        void handle(string)
+        {
+        }
+
+        private void handle(int)
+        {
+        }
+    }
+    Mocker mocker;
+    static assert(is(typeof(mocker.mock!Dependency())));
+}
+
+@("picks public overload")
+unittest
+{
+    static class Dependency
+    {
+        private void handle(int)
+        {
+        }
+
+        void handle(string)
+        {
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.mock!Dependency();
+
+    builder.expect.handle("In vino veritas");
+
+    builder.get.handle("In vino veritas");
+}

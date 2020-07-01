@@ -356,7 +356,9 @@ struct ExpectationSetup(T, string member)
 {
     enum string name = member;
 
-    alias Overloads = staticMap!(Overload, __traits(getOverloads, T, member));
+    private enum bool isVirtualMethod(alias F) = __traits(isVirtualMethod, F);
+    private alias VirtualMethods = Filter!(isVirtualMethod, __traits(getOverloads, T, member));
+    alias Overloads = staticMap!(Overload, VirtualMethods);
 
     Overloads overloads;
 }
@@ -370,6 +372,8 @@ struct ExpectationSetup(T, string member)
 struct Repository(T)
 if (isPolymorphicType!T)
 {
+    private enum isVirtualMethod(T, string member) =
+        __traits(isVirtualMethod, __traits(getMember, T, member));
     private alias VirtualMethods = Filter!(ApplyLeft!(isVirtualMethod, T), __traits(allMembers, T));
 
     alias ExpectationTuple = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
@@ -439,8 +443,6 @@ private template matchArguments(Needle, Haystack...)
 }
 
 private enum bool hasNoArguments(T) = T.Parameters.length == 0;
-private enum isVirtualMethod(T, string member) =
-    __traits(isVirtualMethod, __traits(getMember, T, member));
 
 /**
  * Mock builder used by the mocks and stubs.

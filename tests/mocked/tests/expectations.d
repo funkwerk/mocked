@@ -67,8 +67,7 @@ unittest
 
     mock.say("Ton der Jugend", "zu laut.")
         .should.throwAn!UnexpectedCallError
-        .where.toString
-        .should.startWith(`Unexpected call: Dependency.say("Ton der Jugend", "zu laut.")`);
+        .where.msg.should.be(`Unexpected call: Dependency.say("Ton der Jugend", "zu laut.")`);
 }
 
 @("throws once")
@@ -107,7 +106,9 @@ unittest
 
     mock.say("Let's eat grandma!")
         .should.throwAn!UnexpectedArgumentError
-        .where.toString.should.contain.any("\n");
+        .where.msg.should.be("Expectation failure:
+  Expected: Dependency.say(\"Let's eat, grandma!\")
+  but got:  Dependency.say(\"Let's eat grandma!\")");
 }
 
 @("verify prints what method was expected")
@@ -128,9 +129,27 @@ unittest
 
     mocker.verify
         .should.throwAn!ExpectationViolationException
-        .where.toString.should.startWith(
-                `Expected method not called: Dependency.say("` ~ phrase ~ `")`
-        );
+        .where.msg.should.be(`Expected method not called: Dependency.say("` ~ phrase ~ `")`);
+}
+
+@("verify prints what method was expected for ints")
+unittest
+{
+    static class Dependency
+    {
+        void say(int)
+        {
+        }
+    }
+    Mocker mocker;
+
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect.say(5);
+
+    mocker.verify
+        .should.throwAn!ExpectationViolationException
+        .where.msg.should.be(`Expected method not called: Dependency.say(5)`);
 }
 
 @("allows to pick the overload without specifying the arguments")

@@ -29,7 +29,7 @@ UnexpectedCallError unexpectedCallError(T, Args...)(
 
     static foreach (i, Arg; Args)
     {
-        formattedArguments ~= to!string(arguments[i]);
+        formattedArguments ~= format!"%(%s %)"([arguments[i]]);
     }
     return new UnexpectedCallError(formatName!T(name),
             formattedArguments, file, line, nextInChain);
@@ -60,18 +60,14 @@ final class UnexpectedCallError : Error
      */
     this(string name, string[] arguments,
             string file = __FILE__, size_t line = __LINE__,
-            Throwable nextInChain = null) nothrow pure @safe
+            Throwable nextInChain = null) pure @safe
     {
         this.name = name;
         this.arguments = arguments;
 
-        super("Unexpected call", file, line, nextInChain);
-    }
+        const message = format!"Unexpected call: %s(%-(%s, %))"(this.name, this.arguments);
 
-    public override string toString() const
-    {
-        return format!"%s: %s(%(%s, %))\n\n---\n%s"(this.msg,
-                this.name, this.arguments, this.info);
+        super(message, file, line, nextInChain);
     }
 }
 
@@ -100,8 +96,8 @@ UnexpectedArgumentError unexpectedArgumentError(T, Args...)(
 
     static foreach (i, Arg; Args[0 .. $ - 1])
     {{
-        auto expected = to!string(arguments[$ - 1].get!i);
-        auto actual = to!string(arguments[i]);
+        auto expected = format!"%(%s %)"([arguments[$ - 1].get!i]);
+        auto actual = format!"%(%s %)"([arguments[i]]);
 
         formattedArguments ~= ExpectationPair(actual, expected);
     }}
@@ -133,28 +129,22 @@ final class UnexpectedArgumentError : Error
      *     nextInChain = The next error.
      */
     this(string name, ExpectationPair[] arguments,
-            string file, size_t line, Throwable nextInChain) nothrow pure @safe
+            string file, size_t line, Throwable nextInChain) pure @safe
     {
         this.name = name;
         this.arguments = arguments;
 
-        super("Expectation failure", file, line, nextInChain);
-    }
-
-    public override string toString() const
-    {
         auto message = appender!string();
 
-        message ~= format!"%s\n"(this.msg);
+        message ~= "Expectation failure:\n";
 
-        auto actual = map!(argument => argument.actual)(arguments);
-        auto expected = map!(argument => argument.expected)(arguments);
+        auto actual = arguments.map!(argument => argument.actual);
+        auto expected = arguments.map!(argument => argument.expected);
 
-        message ~= format!"  Expected: %s(%(%s, %))\n"(this.name, expected);
-        message ~= format!"  but got: %s(%(%s, %))\n"(this.name, actual);
-        message ~= format!"\n\n---\n%s"(this.info);
+        message ~= format!"  Expected: %s(%-(%s, %))\n"(this.name, expected);
+        message ~= format!"  but got:  %s(%-(%s, %))"(this.name, actual);
 
-        return message.data;
+        super(message.data, file, line, nextInChain);
     }
 }
 
@@ -167,7 +157,7 @@ ExpectationViolationException expectationViolationException(T, MaybeArgs)(
 
     static foreach (i; 0 .. MaybeArgs.length)
     {
-        formattedArguments ~= to!string(arguments.get!i);
+        formattedArguments ~= format!"%(%s %)"([arguments.get!i]);
     }
     
     return new ExpectationViolationException(formatName!T(name),
@@ -193,12 +183,8 @@ final class ExpectationViolationException : Exception
         this.name = name;
         this.arguments = arguments;
 
-        super("Expected method not called", file, line, nextInChain);
-    }
+        const message = format!"Expected method not called: %s(%-(%s, %))"(this.name, this.arguments);
 
-    public override string toString() const
-    {
-        return format!"%s: %s(%(%s, %))\n\n---\n%s"(this.msg,
-                this.name, this.arguments, this.info);
+        super(message, file, line, nextInChain);
     }
 }

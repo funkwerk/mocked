@@ -11,14 +11,14 @@ import std.format : format;
 import std.traits;
 
 private enum string mockCode = q{
-    auto overloads = &repository.expectationTuple[j].overloads[i];
+    auto overloads = &expectationSetup.expectationTuple[j].overloads[i];
 
     if (overloads.empty)
     {
         throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
     }
     if (!overloads.front.ignoreArgs_
-            && !overloads.front.compareArguments!options(arguments))
+            && !overloads.front.compareArguments!Options(arguments))
     {
         auto overloadArguments = overloads.front.arguments;
 
@@ -91,8 +91,8 @@ private enum string mockCode = q{
 };
 
 private enum string stubCode = q{
-    auto overloads = repository.expectationTuple[j].overloads[i];
-    auto match = overloads.find!(call => call.compareArguments!options(arguments));
+    auto overloads = expectationSetup.expectationTuple[j].overloads[i];
+    auto match = overloads.find!(call => call.compareArguments!Options(arguments));
 
     static if (is(Overload.Return == void))
     {
@@ -175,7 +175,7 @@ auto configure(Args...)()
 struct Factory(Options)
 {
     private DList!Verifiable repositories;
-    private enum Options options = Options();
+    //private enum Options options = Options();
 
     /**
      * Mocks the type $(D_PARAM T).
@@ -189,12 +189,8 @@ struct Factory(Options)
      */
     auto mock(T, Args...)(Args args)
     {
-        Repository!T repository;
-
-        mixin NestedMock!mockCode;
-
-        auto mock = new Mock();
-        auto mocked = new Mocked!T(mock, repository);
+        auto mock = new Mock!(T, Options, mockCode, Args)(args);
+        auto mocked = new Mocked!(typeof(mock))(mock);
 
         this.repositories.insertBack(mocked);
         return mocked;
@@ -206,20 +202,16 @@ struct Factory(Options)
      * Params:
      *     T = The type to stub.
      *     Args = Constructor parameter types.
-     *     Args = Constructor arguments.
+     *     args = Constructor arguments.
      *
      * Returns: A stub builder.
      */
     auto stub(T, Args...)(Args args)
     if (isPolymorphicType!T)
     {
-        Repository!T repository;
+        auto stub = new Mock!(T, Options, stubCode, Args)(args);
 
-        mixin NestedMock!stubCode;
-
-        auto stub = new Mock();
-
-        return new Stubbed!T(stub, repository);
+        return new Stubbed!(typeof(stub))(stub);
     }
 
     /**
@@ -244,25 +236,23 @@ struct Factory(Options)
  * Params:
  *     T = Mocked type.
  */
-final class Stubbed(T) : Builder!T
+final class Stubbed(StubT) : Builder!StubT
 {
     /**
      * Params:
      *     mock = Mocked object.
-     *     repository = Repository used to set up expectations.
      */
-    this(T mock, ref Repository!T repository)
+    this(StubT mock)
     {
-        get = mock;
-        this.repository = &repository;
+        this.mock = mock;
     }
 
     /**
      * Returns: Repository used to set up stubbed methods.
      */
-    ref Repository!T stub()
+    ref auto stub()
     {
-        return *this.repository;
+        return this.mock.expectationSetup;
     }
 
     alias get this;

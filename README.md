@@ -67,9 +67,6 @@ really called i.e you expect function retrieving data to call connect(), because
 it not doing so is an error. Now you run tests against object with fake (mocked)
 DB connection. This way, only the code you want to test is tested, nothing more.
 
-More examples about use of mocks can be found at:
-http://www.youtube.com/watch?v=V98Z11V7kEY
-
 ### Why is mockeD useful?
 
 A mock objects framework allows you to quickly create mock objects, set up
@@ -129,6 +126,30 @@ auto mock = mocker.mock!Object;
 mock.expect.toString.throws(new Exception(""));
 
 assertThrown!Exception(mock.get.toString);
+```
+
+### action
+
+When the method which matches this expectation is called execute the given
+delegate. The delegate's signature must match the signature of the called
+method.
+
+```d
+static bool flag = false;
+
+class Dependency
+{
+    void setFlag(bool flag)
+    {
+    }
+}
+Mocker mocker;
+auto mock = mocker.mock!Dependency;
+mock.expect.setFlag.action((value) { flag = value; });
+
+mock.get.setFlag(true);
+
+assert(flag);
 ```
 
 ## Configuration

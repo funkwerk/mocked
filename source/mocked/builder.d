@@ -2,6 +2,7 @@ module mocked.builder;
 
 import mocked.error;
 import mocked.meta;
+import std.algorithm.searching;
 import std.array;
 import std.format;
 import std.meta;
@@ -18,25 +19,23 @@ interface Verifiable
  * Params:
  *     T = Mocked type.
  */
-final class Mocked(T) : Builder!T, Verifiable
+final class Mocked(MockT) : Builder!MockT, Verifiable
 {
     /**
      * Params:
      *     mock = Mocked object.
-     *     repository = Repository used to set up expectations.
      */
-    this(T mock, ref Repository!T repository)
+    this(MockT mock)
     {
-        get = mock;
-        this.repository = &repository;
+        this.mock = mock;
     }
 
     /**
      * Returns: Repository used to set up expectations.
      */
-    ref Repository!T expect()
+    ref auto expect()
     {
-        return *this.repository;
+        return this.mock.expectationSetup;
     }
 
     /**
@@ -48,24 +47,24 @@ final class Mocked(T) : Builder!T, Verifiable
     {
         scope (failure)
         {
-            static foreach (i, expectation; this.repository.ExpectationTuple)
+            static foreach (i, expectation; this.mock.expectationSetup.ExpectationTuple)
             {
                 static foreach (j, Overload; expectation.Overloads)
                 {
-                    this.repository.expectationTuple[i].overloads[j].clear();
+                    this.expect.expectationTuple[i].overloads[j].clear();
                 }
             }
         }
 
-        static foreach (i, expectation; this.repository.ExpectationTuple)
+        static foreach (i, expectation; this.mock.expectationSetup.ExpectationTuple)
         {
             static foreach (j, Overload; expectation.Overloads)
             {
-                if (!this.repository.expectationTuple[i].overloads[j].empty
-                        && this.repository.expectationTuple[i].overloads[j].front.repeat_ > 0)
+                if (!this.expect.expectationTuple[i].overloads[j].empty
+                        && this.expect.expectationTuple[i].overloads[j].front.repeat_ > 0)
                 {
                     throw expectationViolationException!T(expectation.name,
-                            this.repository.expectationTuple[i].overloads[j].front.arguments);
+                            this.expect.expectationTuple[i].overloads[j].front.arguments);
                 }
             }
         }
@@ -197,8 +196,10 @@ struct Call(alias F)
         return this;
     }
 
-    public bool compareArguments(alias options)(ParameterTypes arguments)
+    public bool compareArguments(Options)(ParameterTypes arguments)
     {
+        Options options;
+
         if (this.customArgsComparator_ !is null)
         {
             return this.customArgsComparator_(arguments);
@@ -369,26 +370,30 @@ struct ExpectationSetup(T, string member)
  * Params:
  *     T = Mocked type.
  */
-struct Repository(T)
+template Repository(T)
 if (isPolymorphicType!T)
 {
-    private enum isVirtualMethod(T, string member) =
+    private enum isVirtualMethod(string member) =
         __traits(isVirtualMethod, __traits(getMember, T, member));
-    private alias VirtualMethods = Filter!(ApplyLeft!(isVirtualMethod, T), __traits(allMembers, T));
+    private alias allMembers = __traits(allMembers, T);
+    private alias VirtualMethods = Filter!(isVirtualMethod, allMembers);
 
-    alias ExpectationTuple = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
-    ExpectationTuple expectationTuple;
-
-    static foreach (i, member; VirtualMethods)
+    struct Repository
     {
-        static foreach (j, overload; ExpectationTuple[i].Overloads)
-        {
-            mixin(format!repositoryProperty(member, i, j));
-        }
+        alias ExpectationTuple = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
+        ExpectationTuple expectationTuple;
 
-        static if (!anySatisfy!(hasNoArguments, ExpectationTuple[i].Overloads))
+        static foreach (i, member; VirtualMethods)
         {
-            mixin(format!repositoryProperty0(member, i));
+            static foreach (j, overload; ExpectationTuple[i].Overloads)
+            {
+                mixin(format!repositoryProperty(member, i, j));
+            }
+
+            static if (!anySatisfy!(hasNoArguments, ExpectationTuple[i].Overloads))
+            {
+                mixin(format!repositoryProperty0(member, i));
+            }
         }
     }
 }
@@ -450,36 +455,46 @@ private enum bool hasNoArguments(T) = T.Parameters.length == 0;
  * Params:
  *     T = Mocked type.
  */
-abstract class Builder(T)
+abstract class Builder(MockT)
 {
-    private T mock;
-    protected Repository!T* repository;
+    private alias T = TemplateArgsOf!MockT[0];
+
+    /// Mocked object instance.
+    protected MockT mock;
+
+    invariant(mock !is null);
 
     /**
      * Returns: Mocked object.
      */
-    ref T get() @nogc nothrow pure @safe
+    T get() @nogc nothrow pure @safe
     {
         return this.mock;
     }
 
     static if (is(T == class))
     {
+        /**
+         * Forward default object methods to the mock.
+         */
         override size_t toHash()
         {
             return get().toHash();
         }
 
+        /// ditto
         override string toString()
         {
             return get().toString();
         }
 
+        /// ditto
         override int opCmp(Object o)
         {
             return get().opCmp(o);
         }
 
+        /// ditto
         override bool opEquals(Object o)
         {
             return get().opEquals(o);
@@ -487,38 +502,37 @@ abstract class Builder(T)
     }
 }
 
-mixin template NestedMock(string overloadingCode)
+final class Mock(T, Options, string overloadingCode, Args...) : T
 {
-    class Mock : T
+    import std.string : join;
+
+    Repository!T expectationSetup;
+
+    static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
     {
-        import std.string : join;
-
-        static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
+        this(ref Args args)
         {
-            this()
-            {
-                super(args);
-            }
+            super(args);
         }
-        else static if (__traits(hasMember, T, "__ctor"))
+    }
+    else static if (__traits(hasMember, T, "__ctor"))
+    {
+        this()
         {
-            this()
-            {
-                super(Parameters!(T.__ctor).init);
-            }
+            super(Parameters!(T.__ctor).init);
         }
+    }
 
-        static foreach (j, expectation; repository.ExpectationTuple)
+    static foreach (j, expectation; expectationSetup.ExpectationTuple)
+    {
+        static foreach (i, Overload; expectation.Overloads)
         {
-            static foreach (i, Overload; expectation.Overloads)
-            {
-                mixin(["override", Overload.qualifiers, "Overload.Return", expectation.name].join(" ") ~ q{
-                    (Overload.ParameterTypes arguments)
-                    {
-                        mixin(overloadingCode);
-                    }
-                });
-            }
+            mixin(["override", Overload.qualifiers, "Overload.Return", expectation.name].join(" ") ~ q{
+                (Overload.ParameterTypes arguments)
+                {
+                    mixin(overloadingCode);
+                }
+            });
         }
     }
 }

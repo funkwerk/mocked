@@ -3,7 +3,6 @@ module mocked.tests.expectations;
 import dshould;
 import dshould.ShouldType;
 import mocked;
-import std.algorithm;
 import unit_threaded : ShouldFail;
 
 void startWith(Should, T)(Should should, T expected,

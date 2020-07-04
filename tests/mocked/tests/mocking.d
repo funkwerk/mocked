@@ -417,3 +417,21 @@ unittest
     Mocker mocker;
     static assert(is(typeof(mocker.mock!Dependency())));
 }
+
+@("can mock a method with an internal name")
+unittest
+{
+    static class Dependency
+    {
+        void repository()
+        {
+        }
+        void call()
+        {
+        }
+        void calls()
+        {
+        }
+    }
+    static assert(is(typeof(Mocker().mock!Dependency())));
+}

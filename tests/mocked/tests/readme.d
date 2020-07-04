@@ -90,3 +90,22 @@ unittest
 
     assertThrown!Exception(mock.get.toString);
 }
+
+unittest
+{
+    static bool flag = false;
+
+    static class Dependency
+    {
+        void setFlag(bool flag)
+        {
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+    mock.expect.setFlag.action((value) { flag = value; });
+
+    mock.get.setFlag(true);
+
+    assert(flag);
+}

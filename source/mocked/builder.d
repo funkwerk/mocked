@@ -249,6 +249,27 @@ struct Call(alias F)
     }
 
     /**
+     * Creates an exception of type $(D_PARAM E) and throws it when the method
+     * which matches this expectation is called.
+     *
+     * Params:
+     *     E = Exception type to throw.
+     *     msg = The error message to put in the exception if it is thrown.
+     *     file = The source file of the caller.
+     *     line = The line number of the caller.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
+    public ref typeof(this) throws(E : Exception = Exception)(
+            string msg,
+            string file = __FILE__, size_t line = __LINE__)
+    {
+        this.exception = new E(msg, file, line);
+
+        return this;
+    }
+
+    /**
      * When the method which matches this expectation is called execute the
      * given delegate. The delegate's signature must match the signature
      * of the called method.

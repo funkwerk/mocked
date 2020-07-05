@@ -89,12 +89,11 @@ When the method which matches this expectation is called, throw the given
 exception.
 
 ```d
-import mocked;
 import std.exception : assertThrown;
 
 Mocker mocker;
 auto mock = mocker.mock!Object;
-mock.expect.toString.throws(new Exception(""));
+mock.expect.toString.throws!Exception("");
 
 assertThrown!Exception(mock.get.toString);
 ```

@@ -86,7 +86,7 @@ unittest
 
     Mocker mocker;
     auto mock = mocker.mock!Object;
-    mock.expect.toString.throws(new Exception(""));
+    mock.expect.toString.throws!Exception("");
 
     assertThrown!Exception(mock.get.toString);
 }

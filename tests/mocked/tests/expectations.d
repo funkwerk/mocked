@@ -230,3 +230,25 @@ unittest
 
     builder.get.handle("In vino veritas");
 }
+
+@("lets .repeatAny() do a forward lookup")
+unittest
+{
+    static class Dependency
+    {
+        string finishQuote(string phrase)
+        {
+            return phrase;
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect
+        .finishQuote("Ducunt volentem fata,")
+        .returns("nolentem trahunt")
+        .repeatAny;
+    mock.expect.finishQuote("Seneca").returns("epistulae");
+
+    mock.get.finishQuote("Seneca").should.equal("epistulae");
+}

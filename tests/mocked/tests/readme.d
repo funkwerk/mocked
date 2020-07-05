@@ -109,3 +109,19 @@ unittest
 
     assert(flag);
 }
+
+unittest
+{
+    enum string expected = "Three times you must say it, then.";
+    Mocker mocker;
+
+    auto builder = mocker.mock!Object;
+    builder.expect.toString.returns(expected).repeat(3);
+    // Or: builder.expect.toString.returns(expected).repeatAny;
+
+    auto mock = builder.get;
+
+    assert(mock.toString() == expected);
+    assert(mock.toString() == expected);
+    assert(mock.toString() == expected);
+}

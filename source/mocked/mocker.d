@@ -13,11 +13,15 @@ import std.traits;
 private enum string mockCode = q{
     auto overloads = &expectationSetup.expectationTuple[j].overloads[i];
 
+    overloads.find!(call => call.repeat_ != 0
+            || call.ignoreArgs_
+            || call.compareArguments!Options(arguments));
+
     if (overloads.empty)
     {
         throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
     }
-    if (!overloads.front.ignoreArgs_
+    if (overloads.front.repeat_ > 0 && !overloads.front.ignoreArgs_
             && !overloads.front.compareArguments!Options(arguments))
     {
         auto overloadArguments = overloads.front.arguments;

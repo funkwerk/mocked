@@ -36,15 +36,80 @@ auto dependency = builder.getMock;
 assert(dependency.authorOf(phrase) == expected);
 ```
 
-## Introduction
-
-### Why is mockeD useful?
-
-A mock objects framework allows you to quickly create mock objects, set up
-expectations for them, and check to see whether these expectations have been
-fulfilled. This saves you tedious work of creating those objects manually.
-
 ## Expectation setup
+
+This library defines `Mocker` data type used to create mocks.
+
+`Mocker.mock!T` returns a mock builder, `Mocked!T`, which is used to configure
+mock's behavior. `Mocked!T.expect` has all virtual methods defined in `T`, with
+the same type signatures. These methods can be used to set the arguments the
+methods are expected to be called with. If you don't pass any arguments, then
+the call to the function will still be expected, but the arguments, it will be
+called with, will be ignored.
+
+```d
+import mocked
+
+class Dependency
+{
+    void say(string)
+    {
+    }
+}
+Mocker mocker;
+auto mock = mocker.mock!Dependency;
+mock.expect.say("Naturam expelles furca, tamen usque recurret. (Horace)");
+// or mock.expect.say(); to ignore the arguments
+
+mock.get.say("Naturam expelles furca, tamen usque recurret. (Horace)");
+```
+
+`mock.get` returns the mocked object itself (child class or an interface
+implementation). If `mock.get.say` was called with a different string or
+wasn't called at all, an error would be thrown.
+
+If the mocked function has several overloads, and you'd like to ignore the
+arguments, you have to specify explicitly, which overload is expected to be
+called. You can do it by providing the types of the arguments. In the
+above example you would write: `mock.expect.say!string()`, since the function
+`Dependency.say` has a single `string` parameter.
+
+You can configure consecutive calls to `Dependency.say()` by calling
+`.expect.say(...)` multiple times.
+
+### Stubs
+
+MockeD provides an API for creating stubs. The API is very similar to the mock
+API. Just replace `Mocker.mock!T` with `Mocker.stub!T` and
+`mock.expect.method(arguments)` with `mock.stub.method(arguments)`.
+
+The arguments won't be used to verify the expectations (there are no
+expectations), but to match a configured method. In the following example we
+configure the stub to return the respective authors (values) for different
+phrases (arguments).
+
+```d
+import mocked
+
+enum string vergil = "tu ne cede malis, sed contra audentior ito.";
+enum string plotinus = "neque est alter hijus universi locus, quam anima";
+class Dependency
+{
+    string authorOf(string)
+    {
+        return null;
+    }
+}
+Mocker mocker;
+auto stub = mocker.stub!Dependency;
+stub.stub.authorOf(vergil).returns("Vergil");
+stub.stub.authorOf(plotinus).returns("Plotinus");
+
+assert(stub.get.authorOf(vergil) == "Vergil");
+assert(stub.get.authorOf(plotinus) == "Plotinus");
+```
+
+The stub builder for `T` is called `Stubbed!T`.
 
 ### passThrough
 

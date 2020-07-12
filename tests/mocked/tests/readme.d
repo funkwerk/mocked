@@ -125,3 +125,39 @@ unittest
     assert(mock.toString() == expected);
     assert(mock.toString() == expected);
 }
+
+unittest
+{
+    static class Dependency
+    {
+        void say(string)
+        {
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+    mock.expect.say("Naturam expelles furca, tamen usque recurret. (Horace)");
+    // or mock.expect.say(); to ignore the arguments
+
+    mock.get.say("Naturam expelles furca, tamen usque recurret. (Horace)");
+}
+
+unittest
+{
+    enum string vergil = "tu ne cede malis, sed contra audentior ito.";
+    enum string plotinus = "neque est alter hijus universi locus, quam anima";
+    static class Dependency
+    {
+        string authorOf(string)
+        {
+            return null;
+        }
+    }
+    Mocker mocker;
+    auto stub = mocker.stub!Dependency;
+    stub.stub.authorOf(vergil).returns("Vergil");
+    stub.stub.authorOf(plotinus).returns("Plotinus");
+
+    assert(stub.get.authorOf(vergil) == "Vergil");
+    assert(stub.get.authorOf(plotinus) == "Plotinus");
+}

@@ -51,8 +51,6 @@ unittest
     auto mock = builder.get;
 
     mock.call(1.02);
-
-    mocker.verify;
 }
 
 unittest

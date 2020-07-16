@@ -242,9 +242,7 @@ auto builder = mocker.mock!Dependency;
 
 builder.expect.call(1.01);
 
-auto mock = builder.getMock;
+auto mock = builder.get;
 
 mock.call(1.02);
-
-mocker.verify;
 ```

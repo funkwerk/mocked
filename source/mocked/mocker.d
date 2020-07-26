@@ -11,17 +11,22 @@ import std.format : format;
 import std.traits;
 
 private enum string mockCode = q{
-    auto overloads = &expectationSetup.expectationTuple[j].overloads[i];
+    auto overloads = &expectationSetup.expectationTuple.methods[j].overloads[i];
 
-    overloads.find!(call => call.repeat_ != 0
-            || call.ignoreArgs_
-            || call.compareArguments!Options(arguments));
+    overloads.find!((call) {
+            if (call.repeat_ != 0 || call.compareArguments!Options(arguments))
+            {
+                return true;
+            }
+            ++this.expectationSetup.expectationTuple.actualCall;
+            return false;
+    });
 
     if (overloads.empty)
     {
         throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
     }
-    if (overloads.front.repeat_ > 0 && !overloads.front.ignoreArgs_
+    if (overloads.front.repeat_ > 0
             && !overloads.front.compareArguments!Options(arguments))
     {
         auto overloadArguments = overloads.front.arguments;
@@ -31,6 +36,13 @@ private enum string mockCode = q{
         throw unexpectedArgumentError!(typeof(super),
                 Overload.ParameterTypes, Overload.Arguments)(
                 expectation.name, arguments, overloadArguments);
+    }
+
+    if (expectationSetup.expectationTuple.ordered && overloads.front.repeat_ == 1)
+    {
+        import std.conv;
+        assert(overloads.front.index == ++this.expectationSetup.expectationTuple.actualCall,
+                overloads.front.index.to!string ~ this.expectationSetup.expectationTuple.actualCall.to!string);
     }
 
     scope(exit)
@@ -95,7 +107,7 @@ private enum string mockCode = q{
 };
 
 private enum string stubCode = q{
-    auto overloads = expectationSetup.expectationTuple[j].overloads[i];
+    auto overloads = expectationSetup.expectationTuple.methods[j].overloads[i];
     auto match = overloads.find!(call => call.compareArguments!Options(arguments));
 
     static if (is(Overload.Return == void))
@@ -179,7 +191,6 @@ auto configure(Args...)()
 struct Factory(Options)
 {
     private DList!Verifiable repositories;
-    //private enum Options options = Options();
 
     /**
      * Mocks the type $(D_PARAM T).

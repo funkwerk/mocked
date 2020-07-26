@@ -107,7 +107,7 @@ UnexpectedArgumentError unexpectedArgumentError(T, Args...)(
 }
 
 /// Pair containing the expected argument and the argument from the actual call.
-alias ExpectationPair = Tuple!(string, "actual", string, "expected");
+private alias ExpectationPair = Tuple!(string, "actual", string, "expected");
 
 /**
  * Error thrown when a method has been called with arguments that don't match
@@ -148,6 +148,31 @@ final class UnexpectedArgumentError : Error
     }
 }
 
+/**
+ * `OutOfOrderCallError` is thrown only if the checking the call order among
+ * methods of the same class is enabled. The error is thrown if a method is
+ * called earlier than expected.
+ */
+final class OutOfOrderCallError : Error
+{
+    private string name;
+    private string[] arguments;
+
+    this(string name, string[] arguments,
+            size_t expected, size_t got,
+            string file = __FILE__, size_t line = __LINE__,
+            Throwable nextInChain = null) pure @safe
+    {
+        this.name = name;
+        this.arguments = arguments;
+
+        string  message = format!"%s(%-(%s, %)) called too early:\n"(this.name, this.arguments);
+        message ~= format!"Expected at position: %s, but got: %s"(expected, got);
+
+        super(message, file, line, nextInChain);
+    }
+}
+
 ExpectationViolationException expectationViolationException(T, MaybeArgs)(
         string name,
         MaybeArgs arguments, string file = __FILE__, size_t line = __LINE__,
@@ -164,10 +189,10 @@ ExpectationViolationException expectationViolationException(T, MaybeArgs)(
             formattedArguments, file, line, nextInChain);
 }
 
-// Expected the method to be called n times, but called m times,
-// where m < n.
-// Same as unexpected call, but with expected arguments instead of the actual ones.
 /**
+ * Expected the method to be called n times, but called m times,
+ * where m < n.
+ * Same as unexpected call, but with expected arguments instead of the actual ones.
  * Thrown if a method was expected to be called, but wasn't.
  */
 final class ExpectationViolationException : Exception

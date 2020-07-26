@@ -8,8 +8,17 @@ import std.format;
 import std.meta;
 import std.traits;
 
+/**
+ * Used to save heterogeneous repositories in a single container and verify
+ * their expectations at the end.
+ */
 interface Verifiable
 {
+    /**
+     * Verifies that certain expectation requirements were satisfied.
+     *
+     * Throws: $(D_PSYMBOL ExpectationViolationException) if those issues occur.
+     */
     void verify();
 }
 
@@ -47,27 +56,38 @@ final class Mocked(MockT) : Builder!MockT, Verifiable
     {
         scope (failure)
         {
-            static foreach (i, expectation; this.mock.expectationSetup.ExpectationTuple)
+            static foreach (i, expectation; this.mock.expectationSetup.expectationTuple.Methods)
             {
                 static foreach (j, Overload; expectation.Overloads)
                 {
-                    this.expect.expectationTuple[i].overloads[j].clear();
+                    this.expect.expectationTuple.methods[i].overloads[j].clear();
                 }
             }
         }
 
-        static foreach (i, expectation; this.mock.expectationSetup.ExpectationTuple)
+        static foreach (i, expectation; this.mock.expectationSetup.expectationTuple.Methods)
         {
             static foreach (j, Overload; expectation.Overloads)
             {
-                if (!this.expect.expectationTuple[i].overloads[j].empty
-                        && this.expect.expectationTuple[i].overloads[j].front.repeat_ > 0)
+                if (!this.expect.expectationTuple.methods[i].overloads[j].empty
+                        && this.expect.expectationTuple.methods[i].overloads[j].front.repeat_ > 0)
                 {
                     throw expectationViolationException!T(expectation.name,
-                            this.expect.expectationTuple[i].overloads[j].front.arguments);
+                            this.expect.expectationTuple.methods[i].overloads[j].front.arguments);
                 }
             }
         }
+    }
+
+    /**
+     * Exepct calls to different mock methods in the given order.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
+    public typeof(this) ordered()
+    {
+        this.mock.expectationSetup.expectationTuple.ordered = true;
+        return this;
     }
 
     alias get this;
@@ -108,11 +128,23 @@ struct Call(alias F)
             ~ concatenatedQualifiers ~ ";");
 
     bool passThrough_ = false;
-    bool ignoreArgs_ = false;
+    size_t index = 0;
     uint repeat_ = 1;
     Exception exception;
     CustomArgsComparator customArgsComparator_;
     Action action_;
+
+    @disable this();
+
+    /**
+     * Params:
+     *     index = Call is expected to be at position $(D_PARAM index) among all
+     *             calls on the given mock.
+     */
+    public this(size_t index)
+    {
+        this.index = index;
+    }
 
     /// Expected arguments if any.
     alias Arguments = Maybe!ParameterTypes;
@@ -152,14 +184,6 @@ struct Call(alias F)
     public ref typeof(this) passThrough()
     {
         this.passThrough_ = true;
-
-        return this;
-    }
-
-    deprecated("Just skip the argument setup")
-    public ref typeof(this) ignoreArgs()
-    {
-        this.ignoreArgs_ = true;
 
         return this;
     }
@@ -290,6 +314,8 @@ struct Call(alias F)
 }
 
 /**
+ * Function overload representation.
+ *
  * Params:
  *     F = Function to build this $(D_PSYMBOL Overload) from.
  */
@@ -399,19 +425,33 @@ if (isPolymorphicType!T)
     private alias allMembers = __traits(allMembers, T);
     private alias VirtualMethods = Filter!(isVirtualMethod, allMembers);
 
+    struct Configuration
+    {
+        alias Methods = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
+
+        Methods methods;
+        private size_t lastCall_;
+        public size_t actualCall;
+        bool ordered;
+
+        public @property size_t lastCall()
+        {
+            return ++this.lastCall_;
+        }
+    }
+
     struct Repository
     {
-        alias ExpectationTuple = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
-        ExpectationTuple expectationTuple;
+        Configuration expectationTuple;
 
         static foreach (i, member; VirtualMethods)
         {
-            static foreach (j, overload; ExpectationTuple[i].Overloads)
+            static foreach (j, overload; Configuration.Methods[i].Overloads)
             {
                 mixin(format!repositoryProperty(member, i, j));
             }
 
-            static if (!anySatisfy!(hasNoArguments, ExpectationTuple[i].Overloads))
+            static if (!anySatisfy!(hasNoArguments, Configuration.Methods[i].Overloads))
             {
                 mixin(format!repositoryProperty0(member, i));
             }
@@ -428,23 +468,24 @@ private enum string repositoryProperty0 = q{
         }
         else
         {
-            enum ptrdiff_t index = matchArguments!(Pack!Args, ExpectationTuple[%2$s].Overloads);
+            enum ptrdiff_t index = matchArguments!(Pack!Args, Configuration.Methods[%2$s].Overloads);
         }
         static assert(index >= 0,
                 "%1$s overload with the given argument types could not be found");
 
-        this.expectationTuple[%2$s].overloads[index].calls ~=
-            ExpectationTuple[%2$s].Overloads[index].Call();
-        return this.expectationTuple[%2$s].overloads[index].back;
+        this.expectationTuple.methods[%2$s].overloads[index].calls ~=
+            Configuration.Methods[%2$s].Overloads[index].Call(this.expectationTuple.lastCall);
+        return this.expectationTuple.methods[%2$s].overloads[index].back;
     }
 };
 
 private enum string repositoryProperty = q{
     ref auto %1$s(overload.Parameters arguments)
     {
-        this.expectationTuple[%2$s].overloads[%3$s].calls ~= overload.Call();
-        this.expectationTuple[%2$s].overloads[%3$s].back.arguments = arguments;
-        return this.expectationTuple[%2$s].overloads[%3$s].back;
+        this.expectationTuple.methods[%2$s].overloads[%3$s].calls ~=
+            overload.Call(this.expectationTuple.lastCall);
+        this.expectationTuple.methods[%2$s].overloads[%3$s].back.arguments = arguments;
+        return this.expectationTuple.methods[%2$s].overloads[%3$s].back;
     }
 };
 
@@ -544,7 +585,7 @@ final class Mock(T, Options, string overloadingCode, Args...) : T
         }
     }
 
-    static foreach (j, expectation; expectationSetup.ExpectationTuple)
+    static foreach (j, expectation; expectationSetup.expectationTuple.Methods)
     {
         static foreach (i, Overload; expectation.Overloads)
         {

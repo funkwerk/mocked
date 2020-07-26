@@ -27,9 +27,7 @@ enum string expected = "L. Wittgenstein";
 Mocker mocker;
 auto builder = mocker.mock!Dependency;
 
-builder.expect
-    .authorOf("[T]he meaning of a word is its use in the language.")
-    .returns(expected);
+builder.expect.authorOf(phrase).returns(expected);
 
 auto dependency = builder.getMock;
 

@@ -35,8 +35,9 @@ final class Mocked(MockT) : Builder!MockT, Verifiable
      *     mock = Mocked object.
      */
     this(MockT mock)
+    in (mock !is null)
     {
-        this.mock = mock;
+        super(mock);
     }
 
     /**
@@ -94,6 +95,35 @@ final class Mocked(MockT) : Builder!MockT, Verifiable
 }
 
 /**
+ * Stub builder.
+ *
+ * Params:
+ *     T = Mocked type.
+ */
+final class Stubbed(StubT) : Builder!StubT
+{
+    /**
+     * Params:
+     *     mock = Mocked object.
+     */
+    this(StubT mock)
+    in (mock !is null)
+    {
+        super(mock);
+    }
+
+    /**
+     * Returns: Repository used to set up stubbed methods.
+     */
+    ref auto stub()
+    {
+        return this.mock.expectationSetup;
+    }
+
+    alias get this;
+}
+
+/**
  * $(D_PSYMBOL Call) represents a single call of a mocked method.
  *
  * Params:
@@ -102,15 +132,15 @@ final class Mocked(MockT) : Builder!MockT, Verifiable
 struct Call(alias F)
 {
     /// Return type of the mocked method.
-    alias Return = ReturnType!F;
+    private alias Return = ReturnType!F;
 
     // Parameters accepted by the mocked method.
-    alias ParameterTypes = .Parameters!F;
+    private alias ParameterTypes = .Parameters!F;
 
     static if (is(FunctionTypeOf!F PT == __parameters))
     {
         /// Arguments passed to set the expectation up.
-        alias Parameters = PT;
+        private alias Parameters = PT;
     }
     else
     {
@@ -118,7 +148,7 @@ struct Call(alias F)
     }
 
     /// Attribute set of the mocked method.
-    alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
+    private alias qualifiers = AliasSeq!(__traits(getFunctionAttributes, F));
 
     private enum concatenatedQualifiers = [qualifiers].join(" ");
 
@@ -127,12 +157,12 @@ struct Call(alias F)
     mixin("alias Action = Return delegate(ParameterTypes) "
             ~ concatenatedQualifiers ~ ";");
 
-    bool passThrough_ = false;
-    size_t index = 0;
-    uint repeat_ = 1;
-    Exception exception;
-    CustomArgsComparator customArgsComparator_;
-    Action action_;
+    private bool passThrough_ = false;
+    private size_t index = 0;
+    private uint repeat_ = 1;
+    private Exception exception;
+    private CustomArgsComparator customArgsComparator_;
+    private Action action_;
 
     @disable this();
 
@@ -147,14 +177,14 @@ struct Call(alias F)
     }
 
     /// Expected arguments if any.
-    alias Arguments = Maybe!ParameterTypes;
+    private alias Arguments = Maybe!ParameterTypes;
 
     /// ditto
-    Arguments arguments;
+    private Arguments arguments;
 
     static if (!is(Return == void))
     {
-        Return return_ = Return.init;
+        private Return return_ = Return.init;
 
         /**
          * Set the value to return when method matching this expectation is called on a mock object.
@@ -319,7 +349,7 @@ struct Call(alias F)
  * Params:
  *     F = Function to build this $(D_PSYMBOL Overload) from.
  */
-struct Overload(alias F)
+private struct Overload(alias F)
 {
     /// Single mocked method call.
     alias Call = .Call!F;
@@ -400,12 +430,12 @@ struct Overload(alias F)
  *     T = Mocked type.
  *     member = Mocked method name.
  */
-struct ExpectationSetup(T, string member)
+private struct ExpectationSetup(T, string member)
 {
     enum string name = member;
 
-    private enum bool isVirtualMethod(alias F) = __traits(isVirtualMethod, F);
-    private alias VirtualMethods = Filter!(isVirtualMethod, __traits(getOverloads, T, member));
+    enum bool isVirtualMethod(alias F) = __traits(isVirtualMethod, F);
+    alias VirtualMethods = Filter!(isVirtualMethod, __traits(getOverloads, T, member));
     alias Overloads = staticMap!(Overload, VirtualMethods);
 
     Overloads overloads;
@@ -417,13 +447,13 @@ struct ExpectationSetup(T, string member)
  * Params:
  *     T = Mocked type.
  */
-template Repository(T)
+private template Repository(T)
 if (isPolymorphicType!T)
 {
-    private enum isVirtualMethod(string member) =
+    enum isVirtualMethod(string member) =
         __traits(isVirtualMethod, __traits(getMember, T, member));
-    private alias allMembers = __traits(allMembers, T);
-    private alias VirtualMethods = Filter!(isVirtualMethod, allMembers);
+    alias allMembers = __traits(allMembers, T);
+    alias VirtualMethods = Filter!(isVirtualMethod, allMembers);
 
     struct Configuration
     {
@@ -527,6 +557,16 @@ abstract class Builder(MockT)
     invariant(mock !is null);
 
     /**
+     * Params:
+     *     mock = Mocked object.
+     */
+    this(MockT mock)
+    in (mock !is null)
+    {
+        this.mock = mock;
+    }
+
+    /**
      * Returns: Mocked object.
      */
     T get() @nogc nothrow pure @safe
@@ -568,7 +608,7 @@ final class Mock(T, Options, string overloadingCode, Args...) : T
 {
     import std.string : join;
 
-    Repository!T expectationSetup;
+    private Repository!T expectationSetup;
 
     static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
     {

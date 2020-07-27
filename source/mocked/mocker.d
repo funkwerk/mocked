@@ -96,7 +96,7 @@ private enum string mockCode = q{
         }
     }
 
-    static if (!canFind!("nothrow", Overload.qualifiers))
+    static if (![Overload.qualifiers].canFind("nothrow"))
     {
         if (overloads.front.exception !is null)
         {
@@ -149,7 +149,7 @@ private enum string stubCode = q{
         }
     }
 
-    static if (!canFind!("nothrow", Overload.qualifiers))
+    static if (![Overload.qualifiers].canFind("nothrow"))
     {
         if (match.front.exception !is null)
         {
@@ -246,32 +246,4 @@ struct Factory(Options)
     {
         verify;
     }
-}
-
-/**
- * Stub builder.
- *
- * Params:
- *     T = Mocked type.
- */
-final class Stubbed(StubT) : Builder!StubT
-{
-    /**
-     * Params:
-     *     mock = Mocked object.
-     */
-    this(StubT mock)
-    {
-        this.mock = mock;
-    }
-
-    /**
-     * Returns: Repository used to set up stubbed methods.
-     */
-    ref auto stub()
-    {
-        return this.mock.expectationSetup;
-    }
-
-    alias get this;
 }

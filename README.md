@@ -259,13 +259,13 @@ import mocked;
 
 class Dependency
 {
-	void callFirst()
-	{
-	}
+    void callFirst()
+    {
+    }
 
-	void callSecond()
-	{
-	}
+    void callSecond()
+    {
+    }
 }
 Mocker mocker;
 auto mock = mocker.mock!Dependency.ordered;

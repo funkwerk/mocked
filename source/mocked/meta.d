@@ -85,5 +85,3 @@ struct Pack(Args...)
  * $(D_KEYWORD false) otherwise.
  */
 enum bool isPolymorphicType(T) = is(T == class) || is(T == interface);
-
-enum bool canFind(alias T, Args...) = staticIndexOf!(T, Args) != -1;

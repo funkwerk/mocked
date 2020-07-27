@@ -244,3 +244,35 @@ auto mock = builder.get;
 
 mock.call(1.02);
 ```
+
+### Call order
+
+Calls of the same overload of a function are always checked in the order the
+expectations were set. That is if you expect `mock.call(1)` and then
+`mock.call(2)`, calling `mock.call(2)` first will fail. But the order in which
+different functions are called doesn't matter.
+To check the order, `.ordered()` can be set on the mock object.
+
+
+```d
+import mocked;
+
+class Dependency
+{
+	void callFirst()
+	{
+	}
+
+	void callSecond()
+	{
+	}
+}
+Mocker mocker;
+auto mock = mocker.mock!Dependency.ordered;
+
+mock.expect.callFirst;
+mock.expect.callSecond;
+
+mock.get.callFirst;
+mock.get.callSecond;
+```

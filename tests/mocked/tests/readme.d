@@ -157,3 +157,25 @@ unittest
     assert(stub.get.authorOf(vergil) == "Vergil");
     assert(stub.get.authorOf(plotinus) == "Plotinus");
 }
+
+unittest
+{
+    static class Dependency
+    {
+        void callFirst()
+        {
+        }
+
+        void callSecond()
+        {
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency.ordered;
+
+    mock.expect.callFirst;
+    mock.expect.callSecond;
+
+    mock.get.callFirst;
+    mock.get.callSecond;
+}

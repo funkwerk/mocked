@@ -11,7 +11,7 @@ import std.typecons;
  *
  * Params:
  *     T = Object type.
- *     Args = $(D_PARAM name)'s arguments.
+ *     Args = $(D_PARAM name)'s argument types.
  *     name = Unexpected call name.
  *     arguments = $(D_PARAM name)'s arguments.
  *     file = File.
@@ -149,6 +149,36 @@ final class UnexpectedArgumentError : Error
 }
 
 /**
+ * Constructs an $(D_PSYMBOL OutOfOrderCallError).
+ *
+ * Params:
+ *     T = Object type.
+ *     Args = $(D_PARAM name)'s arguments.
+ *     name = Unexpected call name.
+ *     arguments = $(D_PARAM name)'s arguments.
+ *     expected = Expected position in the call queue.
+ *     got = Actual position in the call queue.
+ *     file = File.
+ *     line = Line number.
+ *     nextInChain = The next error.
+ */
+OutOfOrderCallError outOfOrderCallError(T, Args...)(
+        string name, Args arguments,
+        size_t expected, size_t got,
+        string file = __FILE__, size_t line = __LINE__,
+        Throwable nextInChain = null)
+{
+    string[] formattedArguments;
+
+    static foreach (i, Arg; Args)
+    {
+        formattedArguments ~= format!"%(%s %)"([arguments[i]]);
+    }
+    return new OutOfOrderCallError(formatName!T(name),
+            formattedArguments, expected, got, file, line, nextInChain);
+}
+
+/**
  * `OutOfOrderCallError` is thrown only if the checking the call order among
  * methods of the same class is enabled. The error is thrown if a method is
  * called earlier than expected.
@@ -158,10 +188,21 @@ final class OutOfOrderCallError : Error
     private string name;
     private string[] arguments;
 
+    /**
+     * Constructs an $(D_PSYMBOL OutOfOrderCallError).
+     *
+     * Params:
+     *     name = Unexpected call name.
+     *     arguments = $(D_PARAM name)'s arguments.
+     *     expected = Expected position in the call queue.
+     *     got = Actual position in the call queue.
+     *     file = File.
+     *     line = Line number.
+     *     nextInChain = The next error.
+     */
     this(string name, string[] arguments,
             size_t expected, size_t got,
-            string file = __FILE__, size_t line = __LINE__,
-            Throwable nextInChain = null) pure @safe
+            string file, size_t line, Throwable nextInChain) pure @safe
     {
         this.name = name;
         this.arguments = arguments;
@@ -173,9 +214,21 @@ final class OutOfOrderCallError : Error
     }
 }
 
+/**
+ * Constructs an $(D_PSYMBOL ExpectationViolationException).
+ *
+ * Params:
+ *     T = Object type.
+ *     MaybeArgs = $(D_PARAM name)'s argument types.
+ *     name = Call name.
+ *     arguments = $(D_PARAM name)'s arguments.
+ *     file = File.
+ *     line = Line number.
+ *     nextInChain = The next error.
+ */
 ExpectationViolationException expectationViolationException(T, MaybeArgs)(
-        string name,
-        MaybeArgs arguments, string file = __FILE__, size_t line = __LINE__,
+        string name, MaybeArgs arguments,
+        string file = __FILE__, size_t line = __LINE__,
         Throwable nextInChain = null)
 {
     string[] formattedArguments;
@@ -197,11 +250,18 @@ ExpectationViolationException expectationViolationException(T, MaybeArgs)(
  */
 final class ExpectationViolationException : Exception
 {
-    string name;
-    string[] arguments;
+    private string name;
+    private string[] arguments;
 
     /**
-     * Constructs an $(D_PSYMBOL UnexpectedArgumentError).
+     * Constructs an $(D_PSYMBOL ExpectationViolationException).
+     *
+     * Params:
+     *     name = Call name.
+     *     arguments = $(D_PARAM name)'s arguments.
+     *     file = File.
+     *     line = Line number.
+     *     nextInChain = The next error.
      */
     this(string name, string[] arguments, string file, size_t line, Throwable nextInChain)
     {

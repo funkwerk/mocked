@@ -38,11 +38,14 @@ private enum string mockCode = q{
                 expectation.name, arguments, overloadArguments);
     }
 
-    if (expectationSetup.expectationTuple.ordered && overloads.front.repeat_ == 1)
+    if (expectationSetup.expectationTuple.ordered
+            && overloads.front.repeat_ == 1
+            && overloads.front.index != ++this.expectationSetup.expectationTuple.actualCall)
     {
-        import std.conv;
-        assert(overloads.front.index == ++this.expectationSetup.expectationTuple.actualCall,
-                overloads.front.index.to!string ~ this.expectationSetup.expectationTuple.actualCall.to!string);
+        throw outOfOrderCallError!(typeof(super), Overload.ParameterTypes)(
+                    expectation.name, arguments,
+                    overloads.front.index,
+                    this.expectationSetup.expectationTuple.actualCall);
     }
 
     scope(exit)

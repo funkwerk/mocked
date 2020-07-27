@@ -252,3 +252,26 @@ unittest
 
     mock.get.finishQuote("Seneca").should.equal("epistulae");
 }
+
+@ShouldFail("if functions are called not in the given order")
+unittest
+{
+    static class Dependency
+    {
+        void callFirst()
+        {
+        }
+
+        void callSecond()
+        {
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency.ordered;
+
+    mock.expect.callFirst;
+    mock.expect.callSecond;
+
+    mock.get.callSecond;
+    mock.get.callFirst;
+}

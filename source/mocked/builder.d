@@ -152,8 +152,6 @@ struct Call(alias F)
 
     private enum concatenatedQualifiers = [qualifiers].join(" ");
 
-    mixin("alias CustomArgsComparator = bool delegate(ParameterTypes) "
-            ~ concatenatedQualifiers ~ ";");
     mixin("alias Action = Return delegate(ParameterTypes) "
             ~ concatenatedQualifiers ~ ";");
 
@@ -161,7 +159,6 @@ struct Call(alias F)
     private size_t index = 0;
     private uint repeat_ = 1;
     private Exception exception;
-    private CustomArgsComparator customArgsComparator_;
     private Action action_;
 
     @disable this();
@@ -254,10 +251,6 @@ struct Call(alias F)
     {
         Options options;
 
-        if (this.customArgsComparator_ !is null)
-        {
-            return this.customArgsComparator_(arguments);
-        }
         static foreach (i, argument; arguments)
         {
             if (!this.arguments.isNull && !options.equal(this.arguments.get!i, argument))
@@ -266,23 +259,6 @@ struct Call(alias F)
             }
         }
         return true;
-    }
-
-    /**
-     * Allow providing custom argument comparator for matching calls to this expectation.
-     *
-     * Params:
-     *     comaprator = The functions used to compare the arguments.
-     *
-     * Returns: $(D_KEYWORD this).
-     */
-    deprecated("Use mocked.Comparator instead")
-    public ref typeof(this) customArgsComparator(CustomArgsComparator comparator)
-    in (comparator !is null)
-    {
-        this.customArgsComparator_ = comparator;
-
-        return this;
     }
 
     /**
@@ -375,7 +351,7 @@ private struct Overload(alias F)
     /**
      * Returns: Whether any expected calls are in the queue.
      */
-    public @property bool empty()
+    @property bool empty()
     {
         return this.calls.empty;
     }
@@ -383,7 +359,7 @@ private struct Overload(alias F)
     /**
      * Returns: The next expected call.
      */
-    public ref Call front()
+    ref Call front()
     in (!this.calls.empty)
     {
         return this.calls.front;
@@ -392,7 +368,7 @@ private struct Overload(alias F)
     /**
      * Returns: The last expected call.
      */
-    public ref Call back()
+    ref Call back()
     in (!this.calls.empty)
     {
         return this.calls.back;
@@ -401,7 +377,7 @@ private struct Overload(alias F)
     /**
       * Removes the next expected call from the queue.
       */
-    public void popFront()
+    void popFront()
     {
         this.calls.popFront;
     }
@@ -409,7 +385,7 @@ private struct Overload(alias F)
     /**
       * Removes the last expected call from the queue.
       */
-    public void popBack()
+    void popBack()
     {
         this.calls.popBack;
     }
@@ -417,7 +393,7 @@ private struct Overload(alias F)
     /**
      * Clears the queue.
      */
-    public void clear()
+    void clear()
     {
         this.calls = [];
     }

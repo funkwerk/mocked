@@ -16,9 +16,9 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Setup DMD
-      uses: WebFreak001/setup-dmd@v1
+      uses: dlang-community/setup-dlang@v1
       with:
-        dmd-version: 2.093.0
+        compiler: dmd-2.093.0
 
     - name: Cache
       uses: actions/cache@v2
@@ -45,9 +45,9 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Setup DMD
-      uses: WebFreak001/setup-dmd@v1
+      uses: dlang-community/setup-dlang@v1
       with:
-        dmd-version: 2.093.0
+        compiler: dmd-2.093.0
 
     - name: Cache
       uses: actions/cache@v2

@@ -26,14 +26,16 @@ interface Verifiable
 }
 
 private enum string mockCode = q{
-    auto overloads = &expectationSetup.expectationTuple.methods[j].overloads[i];
+    auto expectationTuple = cast(typeof(cast() typeof(expectationSetup.expectationTuple).init)*)
+            &expectationSetup.expectationTuple;
+    auto overloads = &expectationTuple.methods[j].overloads[i];
 
     overloads.find!((call) {
             if (call.repeat_ != 0 || call.compareArguments!Options(arguments))
             {
                 return true;
             }
-            ++this.expectationSetup.expectationTuple.actualCall;
+            ++expectationTuple.actualCall;
             return false;
     });
 
@@ -53,14 +55,14 @@ private enum string mockCode = q{
                 expectation.name, arguments, overloadArguments);
     }
 
-    if (expectationSetup.expectationTuple.ordered
+    if (expectationTuple.ordered
             && overloads.front.repeat_ == 1
-            && overloads.front.index != ++this.expectationSetup.expectationTuple.actualCall)
+            && overloads.front.index != ++expectationTuple.actualCall)
     {
         throw outOfOrderCallError!(typeof(super), Overload.ParameterTypes)(
                     expectation.name, arguments,
                     overloads.front.index,
-                    this.expectationSetup.expectationTuple.actualCall);
+                    expectationTuple.actualCall);
     }
 
     scope(exit)

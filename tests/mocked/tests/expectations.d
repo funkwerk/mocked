@@ -275,3 +275,20 @@ unittest
     mock.get.callSecond;
     mock.get.callFirst;
 }
+
+@("supports const method")
+unittest
+{
+    static class Dependency
+    {
+        void act() const
+        {
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.mock!Dependency();
+
+    builder.expect.act;
+
+    builder.act;
+}

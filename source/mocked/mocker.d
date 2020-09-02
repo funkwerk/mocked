@@ -26,8 +26,7 @@ interface Verifiable
 }
 
 private enum string mockCode = q{
-    auto expectationTuple = cast(typeof(cast() typeof(expectationSetup.expectationTuple).init)*)
-            &expectationSetup.expectationTuple;
+    auto expectationTuple = getExpectationTuple(expectationSetup);
     auto overloads = &expectationTuple.methods[j].overloads[i];
 
     overloads.find!((call) {
@@ -126,8 +125,16 @@ private enum string mockCode = q{
     }
 };
 
+private auto getExpectationTuple(T)(ref T expectationSetup)
+{
+    alias R = typeof(cast() typeof(expectationSetup.expectationTuple).init)*;
+
+    return cast(R) &expectationSetup.expectationTuple;
+}
+
 private enum string stubCode = q{
-    auto overloads = expectationSetup.expectationTuple.methods[j].overloads[i];
+    auto overloads = getExpectationTuple(expectationSetup)
+        .methods[j].overloads[i];
     auto match = overloads.find!(call => call.compareArguments!Options(arguments));
 
     static if (is(Overload.Return == void))

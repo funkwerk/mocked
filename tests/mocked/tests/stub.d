@@ -74,3 +74,15 @@ unittest
 
     stub.call(1.02).should.be(true);
 }
+
+@("stubs const methods")
+unittest
+{
+    interface I
+    {
+        public bool isI(string) const;
+    }
+    Mocker mocker;
+
+    static assert(is(typeof(mocker.stub!I())));
+}

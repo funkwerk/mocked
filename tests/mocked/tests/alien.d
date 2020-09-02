@@ -2,7 +2,7 @@ module mocked.tests.alien;
 
 import dshould;
 import mocked;
-import unit_threaded : DontTest, ShouldFail;
+import unit_threaded.attrs : ShouldFail;
 
 version (unittest)
 {
@@ -100,7 +100,6 @@ version (unittest)
         }
     }
 
-    @DontTest
     class TestClass
     {
         string test()

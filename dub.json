@@ -21,7 +21,7 @@
 			"mainSourceFile": "tests/app.d",
 			"dependencies": {
 				"dshould": "~>1.3.2",
-				"unit-threaded": "~>1.0.4"
+				"unit-threaded": "~>1.0.9"
 			}
 		}
 	]

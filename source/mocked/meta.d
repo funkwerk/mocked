@@ -1,6 +1,5 @@
 module mocked.meta;
 
-import std.format : format;
 import std.meta;
 import std.typecons;
 
@@ -14,6 +13,9 @@ struct Maybe(Arguments...)
 
     /// Tuple length.
     public enum size_t length = Arguments.length;
+
+    /// Tuple types.
+    public alias Types = Arguments;
 
     /**
      * Params:

@@ -4,6 +4,7 @@ import std.algorithm;
 import std.array;
 import std.conv;
 import std.format;
+import std.traits;
 import std.typecons;
 
 /**
@@ -25,14 +26,30 @@ UnexpectedCallError unexpectedCallError(T, Args...)(
         string file = __FILE__, size_t line = __LINE__,
         Throwable nextInChain = null)
 {
+    return new UnexpectedCallError(formatName!T(name),
+            formatArguments!Args(arguments), file, line, nextInChain);
+}
+
+private string[] formatArguments(Args...)(ref Args arguments)
+{
     string[] formattedArguments;
+    auto spec = singleSpec("%s");
+    auto writer = appender!(char[])();
 
     static foreach (i, Arg; Args)
     {
-        formattedArguments ~= format!"%(%s %)"([arguments[i]]);
+        static if (isSomeString!Arg)
+        {
+            formattedArguments ~= format!"%(%s %)"([arguments[i]]);
+        }
+        else
+        {
+            writer.clear();
+            writer.formatValue(arguments[i], spec);
+            formattedArguments ~= writer[].idup;
+        }
     }
-    return new UnexpectedCallError(formatName!T(name),
-            formattedArguments, file, line, nextInChain);
+    return formattedArguments;
 }
 
 private string formatName(T)(string name)
@@ -93,11 +110,26 @@ UnexpectedArgumentError unexpectedArgumentError(T, Args...)(
         Throwable nextInChain = null)
 {
     ExpectationPair[] formattedArguments;
+    auto spec = singleSpec("%s");
+    auto writer = appender!(char[])();
 
     static foreach (i, Arg; Args[0 .. $ - 1])
     {{
-        auto expected = format!"%(%s %)"([arguments[$ - 1].get!i]);
-        auto actual = format!"%(%s %)"([arguments[i]]);
+        static if (isSomeString!Arg)
+        {
+            const expected = format!"%(%s %)"([arguments[$ - 1].get!i]);
+            const actual = format!"%(%s %)"([arguments[i]]);
+        }
+        else
+        {
+            writer.clear();
+            writer.formatValue(arguments[$ - 1].get!i, spec);
+            const expected = writer[].idup;
+
+            writer.clear();
+            writer.formatValue(arguments[i], spec);
+            const actual = writer[].idup;
+        }
 
         formattedArguments ~= ExpectationPair(actual, expected);
     }}
@@ -168,14 +200,8 @@ OutOfOrderCallError outOfOrderCallError(T, Args...)(
         string file = __FILE__, size_t line = __LINE__,
         Throwable nextInChain = null)
 {
-    string[] formattedArguments;
-
-    static foreach (i, Arg; Args)
-    {
-        formattedArguments ~= format!"%(%s %)"([arguments[i]]);
-    }
     return new OutOfOrderCallError(formatName!T(name),
-            formattedArguments, expected, got, file, line, nextInChain);
+            formatArguments!Args(arguments), expected, got, file, line, nextInChain);
 }
 
 /**
@@ -232,10 +258,21 @@ ExpectationViolationException expectationViolationException(T, MaybeArgs)(
         Throwable nextInChain = null)
 {
     string[] formattedArguments;
+    auto writer = appender!(char[])();
+    auto spec = singleSpec("%s");
 
     static foreach (i; 0 .. MaybeArgs.length)
     {
-        formattedArguments ~= format!"%(%s %)"([arguments.get!i]);
+        static if (isSomeString!(MaybeArgs.Types[i]))
+        {
+            formattedArguments ~= format!"%(%s %)"([arguments.get!i]);
+        }
+        else
+        {
+            writer.clear();
+            writer.formatValue(arguments.get!i, spec);
+            formattedArguments ~= writer[].idup;
+        }
     }
     
     return new ExpectationViolationException(formatName!T(name),

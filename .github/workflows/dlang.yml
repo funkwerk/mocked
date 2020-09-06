@@ -18,7 +18,7 @@ jobs:
     - name: Setup DMD
       uses: dlang-community/setup-dlang@v1
       with:
-        compiler: dmd-2.093.0
+        compiler: dmd-2.093.1
 
     - name: Cache
       uses: actions/cache@v2
@@ -47,7 +47,7 @@ jobs:
     - name: Setup DMD
       uses: dlang-community/setup-dlang@v1
       with:
-        compiler: dmd-2.093.0
+        compiler: dmd-2.093.1
 
     - name: Cache
       uses: actions/cache@v2

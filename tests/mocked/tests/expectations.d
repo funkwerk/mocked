@@ -292,3 +292,26 @@ unittest
 
     builder.act;
 }
+
+@("works with Nullables")
+unittest
+{
+    import std.typecons : Nullable, nullable;
+
+    static class Dependency
+    {
+        void say(Nullable!string phrase)
+        {
+        }
+    }
+    with (Mocker())
+    {
+        auto dependency = mock!Dependency;
+        auto expected = nullable("procul, o procul...");
+
+        dependency.expect.say(nullable("procul, o procul..."));
+
+        dependency.say(Nullable!string())
+            .should.throwAn!UnexpectedArgumentError;
+    }
+}

@@ -29,23 +29,22 @@ private enum string mockCode = q{
     auto expectationTuple = getExpectationTuple(expectationSetup);
     auto overloads = &expectationTuple.methods[j].overloads[i];
 
-    overloads.find!((call) {
-            if (call.repeat_ != 0 || call.compareArguments!Options(arguments))
-            {
-                return true;
-            }
-            ++expectationTuple.actualCall;
-            return false;
-    });
+    const matchAtIndex = (*overloads).countUntil!(call =>
+            (expectationTuple.ordered && call.repeat_ != 0)
+                || call.compareArguments!Options(arguments)
+    );
 
-    if (overloads.empty)
+    if (matchAtIndex == -1)
     {
         throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
     }
-    if (overloads.front.repeat_ > 0
-            && !overloads.front.compareArguments!Options(arguments))
+    expectationTuple.actualCall += matchAtIndex;
+    auto matchedElement = &overloads.calls[matchAtIndex];
+
+    if (matchedElement.repeat_ > 0
+            && !matchedElement.compareArguments!Options(arguments))
     {
-        auto overloadArguments = overloads.front.arguments;
+        auto overloadArguments = matchedElement.arguments;
 
         overloads.clear();
 
@@ -55,58 +54,59 @@ private enum string mockCode = q{
     }
 
     if (expectationTuple.ordered
-            && overloads.front.repeat_ == 1
-            && overloads.front.index != ++expectationTuple.actualCall)
+            && matchedElement.repeat_ == 1
+            && matchedElement.index != ++expectationTuple.actualCall)
     {
         throw outOfOrderCallError!(typeof(super), Overload.ParameterTypes)(
                     expectation.name, arguments,
-                    overloads.front.index,
+                    matchedElement.index,
                     expectationTuple.actualCall);
     }
 
     scope(exit)
     {
-        if (overloads.front.repeat_ > 1)
+        if (matchedElement.repeat_ > 1)
         {
-            --overloads.front.repeat_;
+            --matchedElement.repeat_;
         }
-        else if (overloads.front.repeat_ == 1)
+        else if (matchedElement.repeat_ == 1)
         {
-            overloads.popFront;
+            overloads.calls = overloads.calls[0 .. matchAtIndex]
+                ~ overloads.calls[matchAtIndex + 1 .. $];
         }
     }
 
     static if (is(Overload.Return == void))
     {
-        if (overloads.front.action_ !is null)
+        if (matchedElement.action_ !is null)
         {
-            overloads.front.action_(arguments);
+            matchedElement.action_(arguments);
         }
     }
     else
     {
         Overload.Return ret = void;
 
-        if (overloads.front.action_ !is null)
+        if (matchedElement.action_ !is null)
         {
-            ret = overloads.front.action_(arguments);
+            ret = matchedElement.action_(arguments);
         }
         else
         {
-            ret = overloads.front.return_;
+            ret = matchedElement.return_;
         }
     }
 
     static if (!is(T == interface) && is(Overload.Return == void))
     {
-        if (overloads.front.passThrough_)
+        if (matchedElement.passThrough_)
         {
             __traits(getMember, super, expectation.name)(arguments);
         }
     }
     else static if (!is(T == interface))
     {
-        if (overloads.front.passThrough_)
+        if (matchedElement.passThrough_)
         {
             ret = __traits(getMember, super, expectation.name)(arguments);
         }
@@ -114,9 +114,9 @@ private enum string mockCode = q{
 
     static if (![Overload.qualifiers].canFind("nothrow"))
     {
-        if (overloads.front.exception !is null)
+        if (matchedElement.exception !is null)
         {
-            throw overloads.front.exception;
+            throw matchedElement.exception;
         }
     }
     static if (!is(Overload.Return == void))
@@ -650,6 +650,34 @@ private struct Overload(alias F)
     void clear()
     {
         this.calls = [];
+    }
+
+    /**
+     * Returns: Number of the queue.
+     */
+    @property size_t length()
+    {
+        return this.calls.length;
+    }
+
+    /**
+     * Returns: $(D_KEYWORD this).
+     */
+    public Overload save()
+    {
+        return this;
+    }
+
+    /**
+     * Params:
+     *     i = Index.
+     *
+     * Returns: The element at index $(D_PARAM i).
+     */
+    public ref Call opIndex(size_t i)
+    in (i < this.calls.length)
+    {
+        return this.calls[i];
     }
 }
 

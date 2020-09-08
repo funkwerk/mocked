@@ -99,7 +99,7 @@ unittest
     }
     Mocker mocker;
 
-    auto mock = mocker.mock!Dependency;
+    auto mock = mocker.mock!Dependency.ordered;
 
     mock.expect.say("Let's eat, grandma!").repeat(2);
 
@@ -306,7 +306,7 @@ unittest
     }
     with (Mocker())
     {
-        auto dependency = mock!Dependency;
+        auto dependency = mock!Dependency.ordered;
         auto expected = nullable("procul, o procul...");
 
         dependency.expect.say(nullable("procul, o procul..."));
@@ -314,4 +314,23 @@ unittest
         dependency.say(Nullable!string())
             .should.throwAn!UnexpectedArgumentError;
     }
+}
+
+@("allows functions to be called not in the given order")
+unittest
+{
+    static class Dependency
+    {
+        void callFirst(int)
+        {
+        }
+    }
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+
+    mock.expect.callFirst(1);
+    mock.expect.callFirst(2);
+
+    mock.get.callFirst(2);
+    mock.get.callFirst(1);
 }

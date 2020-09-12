@@ -335,13 +335,13 @@ final class Mocked(T) : Builder!T, Verifiable
     }
 
     /**
-     * Exepct calls to different mock methods in the given order.
+     * Accept expected calls in a random order.
      *
      * Returns: $(D_KEYWORD this).
      */
-    public typeof(this) ordered()
+    public typeof(this) unordered()
     {
-        this.repository.expectationTuple.ordered = true;
+        this.repository.expectationTuple.ordered = false;
         return this;
     }
 
@@ -720,7 +720,7 @@ if (isPolymorphicType!T)
         Methods methods;
         private size_t lastCall_;
         public size_t actualCall;
-        bool ordered;
+        bool ordered = true;
 
         public @property size_t lastCall()
         {

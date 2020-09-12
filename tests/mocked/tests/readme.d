@@ -171,11 +171,11 @@ unittest
         }
     }
     Mocker mocker;
-    auto mock = mocker.mock!Dependency.ordered;
+    auto mock = mocker.mock!Dependency.unordered;
 
     mock.expect.callFirst;
     mock.expect.callSecond;
 
-    mock.get.callFirst;
     mock.get.callSecond;
+    mock.get.callFirst;
 }

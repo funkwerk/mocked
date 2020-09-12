@@ -247,9 +247,8 @@ mock.call(1.02);
 
 ### Call order
 
-The order in which different functions are called doesn't matter. To check the
-order, `.ordered()` can be set on the mock object.
-
+The check that all expected calls are being made in a specific order can be
+disabled. Set `.unordered()` on the mock object.
 
 ```d
 import mocked;
@@ -265,11 +264,11 @@ class Dependency
     }
 }
 Mocker mocker;
-auto mock = mocker.mock!Dependency.ordered;
+auto mock = mocker.mock!Dependency.unordered;
 
 mock.expect.callFirst;
 mock.expect.callSecond;
 
-mock.get.callFirst;
 mock.get.callSecond;
+mock.get.callFirst;
 ```

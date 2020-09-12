@@ -99,7 +99,7 @@ unittest
     }
     Mocker mocker;
 
-    auto mock = mocker.mock!Dependency.ordered;
+    auto mock = mocker.mock!Dependency;
 
     mock.expect.say("Let's eat, grandma!").repeat(2);
 
@@ -267,7 +267,7 @@ unittest
         }
     }
     Mocker mocker;
-    auto mock = mocker.mock!Dependency.ordered;
+    auto mock = mocker.mock!Dependency;
 
     mock.expect.callFirst;
     mock.expect.callSecond;
@@ -306,7 +306,7 @@ unittest
     }
     with (Mocker())
     {
-        auto dependency = mock!Dependency.ordered;
+        auto dependency = mock!Dependency;
         auto expected = nullable("procul, o procul...");
 
         dependency.expect.say(nullable("procul, o procul..."));
@@ -326,7 +326,7 @@ unittest
         }
     }
     Mocker mocker;
-    auto mock = mocker.mock!Dependency;
+    auto mock = mocker.mock!Dependency.unordered;
 
     mock.expect.callFirst(1);
     mock.expect.callFirst(2);

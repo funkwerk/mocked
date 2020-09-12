@@ -67,17 +67,6 @@ version (unittest)
         int member;
     }
 
-    class Overloads
-    {
-        void foo()
-        {
-        }
-
-        void foo(int)
-        {
-        }
-    }
-
     interface VirtualFinal
     {
         int makeVir();
@@ -330,20 +319,6 @@ unittest
 {
     Mocker mocker;
     mocker.mock!HasMember;
-}
-
-@("overloaded method")
-unittest
-{
-    Mocker mocker;
-    auto obj = mocker.mock!Overloads;
-    obj.expect.foo();
-    obj.expect.foo(1);
-
-    obj.foo(1);
-    obj.foo;
-
-    mocker.verify;
 }
 
 @("returning different values on the same expectation")

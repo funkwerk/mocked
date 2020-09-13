@@ -1,5 +1,6 @@
 module mocked.meta;
 
+import std.algorithm;
 import std.meta;
 import std.typecons;
 
@@ -9,7 +10,9 @@ import std.typecons;
  */
 struct Maybe(Arguments...)
 {
-    private Nullable!(Tuple!Arguments) arguments_;
+    private Tuple!Types arguments_ = void;
+
+    private bool isNull_ = true;
 
     /// Tuple length.
     public enum size_t length = Arguments.length;
@@ -23,7 +26,10 @@ struct Maybe(Arguments...)
      */
     public void opAssign(Arguments arguments)
     {
-        this.arguments_ = tuple!Arguments(arguments);
+        this.isNull_ = false;
+
+        auto payload = tuple!Arguments(arguments);
+        moveEmplace(payload, this.arguments_);
     }
 
     /**
@@ -32,7 +38,7 @@ struct Maybe(Arguments...)
      */
     public @property bool isNull()
     {
-        return this.arguments_.isNull;
+        return this.isNull_;
     }
 
     /**
@@ -43,22 +49,9 @@ struct Maybe(Arguments...)
      */
     public @property ref Arguments[n] get(size_t n)()
     if (n < Arguments.length)
-    in (!this.isNull())
+    in (!isNull())
     {
-        return this.arguments_.get[n];
-    }
-
-    /**
-     * Returns: Value tuple.
-     *
-     * Preconditions:
-     *
-     * $(D_CODE !isNull).
-     */
-    public @property ref Tuple!Arguments get()
-    in (!isNull)
-    {
-        return this.arguments_.get;
+        return this.arguments_[n];
     }
 }
 

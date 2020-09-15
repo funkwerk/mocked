@@ -83,18 +83,19 @@ private enum string mockCode = q{
             matchedElement.action_(arguments);
         }
     }
+    else static if (is(T == interface))
+    {
+        Overload.Return ret = matchedElement.action_ is null
+            ? matchedElement.return_
+            : matchedElement.action_(arguments);
+    }
     else
     {
-        Overload.Return ret = void;
-
-        if (matchedElement.action_ !is null)
-        {
-            ret = matchedElement.action_(arguments);
-        }
-        else
-        {
-            ret = matchedElement.return_;
-        }
+        Overload.Return ret = matchedElement.passThrough_
+            ? __traits(getMember, super, expectation.name)(arguments)
+            : matchedElement.action_ is null
+            ? matchedElement.return_
+            : matchedElement.action_(arguments);
     }
 
     static if (!is(T == interface) && is(Overload.Return == void))
@@ -102,13 +103,6 @@ private enum string mockCode = q{
         if (matchedElement.passThrough_)
         {
             __traits(getMember, super, expectation.name)(arguments);
-        }
-    }
-    else static if (!is(T == interface))
-    {
-        if (matchedElement.passThrough_)
-        {
-            ret = __traits(getMember, super, expectation.name)(arguments);
         }
     }
 
@@ -144,18 +138,19 @@ private enum string stubCode = q{
             match.front.action_(arguments);
         }
     }
+    else static if (is(T == interface))
+    {
+        Overload.Return ret = match.front.action_ is null
+            ? match.front.return_
+            : match.front.action_(arguments);
+    }
     else
     {
-        Overload.Return ret = void;
-
-        if (match.front.action_ !is null)
-        {
-            ret = match.front.action_(arguments);
-        }
-        else
-        {
-            ret = match.front.return_;
-        }
+        Overload.Return ret = match.front.passThrough_
+            ? __traits(getMember, super, expectation.name)(arguments)
+            : match.front.action_ is null
+            ? match.front.return_
+            : match.front.action_(arguments);
     }
 
     static if (!is(T == interface) && is(Overload.Return == void))
@@ -163,13 +158,6 @@ private enum string stubCode = q{
         if (match.front.passThrough_)
         {
             __traits(getMember, super, expectation.name)(arguments);
-        }
-    }
-    else static if (!is(T == interface))
-    {
-        if (match.front.passThrough_)
-        {
-            ret = __traits(getMember, super, expectation.name)(arguments);
         }
     }
 
@@ -447,7 +435,7 @@ struct Call(alias F)
          */
         public ref typeof(this) returns(Return value)
         {
-            this.return_ = value;
+            move(value, this.return_);
 
             return this;
         }

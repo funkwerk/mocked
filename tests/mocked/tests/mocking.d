@@ -435,3 +435,22 @@ unittest
     }
     static assert(is(typeof(Mocker().mock!Dependency())));
 }
+
+@("can mock a method returning a struct with const members")
+unittest
+{
+    struct Split
+    {
+        const string split;
+    }
+
+    static class Dependency
+    {
+        Split f()
+        {
+            return Split();
+        }
+    }
+    static assert(is(typeof(Mocker().mock!Dependency())));
+    static assert(is(typeof(Mocker().stub!Dependency())));
+}

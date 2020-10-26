@@ -53,6 +53,12 @@ struct Maybe(Arguments...)
     {
         return this.arguments_[n];
     }
+
+    public @property ref Tuple!Arguments get()
+    in (!isNull())
+    {
+        return this.arguments_;
+    }
 }
 
 /**

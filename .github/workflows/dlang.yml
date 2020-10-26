@@ -18,7 +18,7 @@ jobs:
     - name: Setup DMD
       uses: dlang-community/setup-dlang@v1
       with:
-        compiler: dmd-2.093.1
+        compiler: dmd-2.094.1
 
     - name: Cache
       uses: actions/cache@v2
@@ -47,7 +47,7 @@ jobs:
     - name: Setup DMD
       uses: dlang-community/setup-dlang@v1
       with:
-        compiler: dmd-2.093.1
+        compiler: dmd-2.094.1
 
     - name: Cache
       uses: actions/cache@v2
@@ -56,8 +56,5 @@ jobs:
         key: ${{ runner.os }}-audit-${{ hashFiles('**/dub.json') }}
         restore-keys: ${{ runner.os }}-audit-
 
-    - name: Build D-Scanner
-      run: dub build dscanner
-
-    - name: Run D-Scanner
-      run: dub run dscanner -- --styleCheck source tests
+    - run: dub fetch dscanner --version=0.11.0
+    - run: dub run dscanner -- --styleCheck source tests

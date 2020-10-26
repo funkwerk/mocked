@@ -86,3 +86,94 @@ unittest
 
     static assert(is(typeof(mocker.stub!I())));
 }
+
+@("overrides returned value")
+unittest
+{
+    enum string leibniz = "Unsere Welt ist die beste aller möglichen Welten";
+    enum string schopenhauer =
+        "Unsere Welt ist die schlechteste aller möglichen Welten";
+    static class X
+    {
+        string phrase()
+        {
+            return null;
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.stub!X;
+
+    builder.stub.phrase.returns(leibniz);
+    builder.stub.phrase.returns(schopenhauer);
+
+    builder.get.phrase.should.equal(schopenhauer);
+}
+
+@("overrides default stub")
+unittest
+{
+    static class Dependency
+    {
+        string translate(string)
+        {
+            assert(false);
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.stub!Dependency;
+
+    builder.stub.translate!string.returns("im Sinne");
+    builder.stub.translate!string.returns("in mente");
+
+    builder.get.translate("latin").should.equal("in mente");
+}
+
+@("checks whether arguments were set when overriding")
+unittest
+{
+    static class Dependency
+    {
+        string translate(string language)
+        {
+            return language == "latin" ? "in mente" : null;
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.stub!Dependency;
+
+    builder.stub.translate!string.returns("im Sinne");
+    builder.stub.translate("latin").returns("in mente");
+
+    builder.get.translate("latin").should.equal("in mente");
+}
+
+@("defaults to .init")
+unittest
+{
+    static class Dependency
+    {
+        string translate()
+        {
+            return "quinta essentia";
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.stub!Dependency;
+
+    builder.get.translate.should.be(null);
+}
+
+@("returns early if nothing matches")
+unittest
+{
+    static class Dependency
+    {
+        void translate()
+        {
+        }
+    }
+    Mocker mocker;
+    auto builder = mocker.stub!Dependency;
+
+    builder.get.translate;
+}

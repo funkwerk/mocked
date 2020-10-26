@@ -10,6 +10,7 @@ import std.conv;
 import std.format : format;
 import std.meta;
 import std.traits;
+import std.typecons;
 
 /**
  * Used to save heterogeneous repositories in a single container and verify
@@ -130,6 +131,27 @@ private enum string stubCode = q{
     auto overloads = getExpectationTuple(expectationSetup)
         .methods[j].overloads[i];
     auto match = overloads.find!(call => call.compareArguments!Options(arguments));
+    // Continue to search for better matches
+    for (auto preliminaryMatch = match; !preliminaryMatch.empty; preliminaryMatch.popFront)
+    {
+        if (!preliminaryMatch.front.arguments.isNull
+                && preliminaryMatch.front.compareArguments!Options(arguments))
+        {
+            match = preliminaryMatch;
+            break;
+        }
+    }
+    if (match.empty)
+    {
+        static if (is(Overload.Return == void))
+        {
+            return;
+        }
+        else
+        {
+            return Overload.Return.init;
+        }
+    }
 
     static if (is(Overload.Return == void))
     {
@@ -219,7 +241,7 @@ struct Factory(Options)
      */
     auto mock(T, Args...)(Args args)
     {
-        mixin NestedMock!(T, Options, mockCode, Args);
+        mixin NestedMock!(Repository!T.Mock, Options, Args);
 
         auto mock = new Mock(args);
         auto mocked = new Mocked!T(mock, mock.expectationSetup);
@@ -241,7 +263,7 @@ struct Factory(Options)
     auto stub(T, Args...)(Args args)
     if (isPolymorphicType!T)
     {
-        mixin NestedMock!(T, Options, stubCode, Args);
+        mixin NestedMock!(Repository!T.Stub, Options, Args);
 
         auto stub = new Mock(args);
 
@@ -272,20 +294,24 @@ struct Factory(Options)
  */
 final class Mocked(T) : Builder!T, Verifiable
 {
+    private Repository!T.Mock* repository;
+
     /**
      * Params:
      *     mock = Mocked object.
+     *     repository = Mock repository.
      */
-    this(T mock, ref Repository!T repository)
+    this(T mock, ref Repository!T.Mock repository)
     in (mock !is null)
     {
-        super(mock, repository);
+        super(mock);
+        this.repository = &repository;
     }
 
     /**
      * Returns: Repository used to set up expectations.
      */
-    ref Repository!T expect()
+    ref Repository!T.Mock expect()
     {
         return *this.repository;
     }
@@ -344,20 +370,24 @@ final class Mocked(T) : Builder!T, Verifiable
  */
 final class Stubbed(T) : Builder!T
 {
+    private Repository!T.Stub* repository;
+
     /**
      * Params:
-     *     mock = Mocked object.
+     *     mock = Stubbed object.
+     *     repository = Stub repository.
      */
-    this(T mock, ref Repository!T repository)
+    this(T mock, ref Repository!T.Stub repository)
     in (mock !is null)
     {
-        super(mock, repository);
+        super(mock);
+        this.repository = &repository;
     }
 
     /**
      * Returns: Repository used to set up stubbed methods.
      */
-    ref Repository!T stub()
+    ref Repository!T.Stub stub()
     {
         return *this.repository;
     }
@@ -371,8 +401,10 @@ final class Stubbed(T) : Builder!T
  * Params:
  *     F = Function represented by this $(D_PSYMBOL Call).
  */
-struct Call(alias F)
+mixin template Call(alias F)
 {
+    private alias Function = F;
+
     /// Return type of the mocked method.
     private alias Return = ReturnType!F;
 
@@ -398,22 +430,8 @@ struct Call(alias F)
             ~ concatenatedQualifiers ~ ";");
 
     private bool passThrough_ = false;
-    private size_t index = 0;
-    private uint repeat_ = 1;
     private Exception exception;
     private Action action_;
-
-    @disable this();
-
-    /**
-     * Params:
-     *     index = Call is expected to be at position $(D_PARAM index) among all
-     *             calls on the given mock.
-     */
-    public this(size_t index)
-    {
-        this.index = index;
-    }
 
     /// Expected arguments if any.
     private alias Arguments = Maybe!ParameterTypes;
@@ -458,37 +476,15 @@ struct Call(alias F)
     }
 
     /**
-     * This expectation will match to any number of calls.
-     *
-     * Returns: $(D_KEYWORD this).
-     */
-    public ref typeof(this) repeatAny()
-    {
-        this.repeat_ = 0;
-
-        return this;
-    }
-
-    /**
-     * This expectation will match exactly $(D_PARAM times) times.
-     *
-     * Preconditions:
-     *
-     * $(D_CODE times > 0).
+     * Compares arguments of this call with the given arguments.
      *
      * Params:
-     *     times = The number of calls the expectation will match.
+     *     Options = Functions used for comparison.
+     *     arguments = Arguments.
      *
-     * Returns: $(D_KEYWORD this).
+     * Returns: Whether the arguments of this call are equal to the given
+     *          arguments.
      */
-    public ref typeof(this) repeat(uint times)
-    in (times > 0)
-    {
-        this.repeat_ = times;
-
-        return this;
-    }
-
     public bool compareArguments(Options)(ParameterTypes arguments)
     {
         Options options;
@@ -561,16 +557,75 @@ struct Call(alias F)
     }
 }
 
+/// ditto
+struct MockCall(alias F)
+{
+    mixin Call!F;
+
+    private uint repeat_ = 1;
+    private size_t index = 0;
+
+    @disable this();
+
+    /**
+     * Params:
+     *     index = Call is expected to be at position $(D_PARAM index) among all
+     *             calls on the given mock.
+     */
+    public this(size_t index)
+    {
+        this.index = index;
+    }
+
+    /**
+     * This expectation will match exactly $(D_PARAM times) times.
+     *
+     * Preconditions:
+     *
+     * $(D_CODE times > 0).
+     *
+     * Params:
+     *     times = The number of calls the expectation will match.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
+    public ref typeof(this) repeat(uint times)
+    in (times > 0)
+    {
+        this.repeat_ = times;
+
+        return this;
+    }
+
+    /**
+     * This expectation will match to any number of calls.
+     *
+     * Returns: $(D_KEYWORD this).
+     */
+    public ref typeof(this) repeatAny()
+    {
+        this.repeat_ = 0;
+
+        return this;
+    }
+}
+
+/// ditto
+struct StubCall(alias F)
+{
+    mixin Call!F;
+}
+
 /**
  * Function overload representation.
  *
  * Params:
- *     F = Function to build this $(D_PSYMBOL Overload) from.
+ *     C = Single mocked method call.
  */
-private struct Overload(alias F)
+private struct Overload(C)
 {
     /// Single mocked method call.
-    alias Call = .Call!F;
+    alias Call = C;
 
     /// Return type of the mocked method.
     alias Return = Call.Return;
@@ -673,16 +728,17 @@ private struct Overload(alias F)
  * $(D_PSYMBOL ExpectationSetup) contains all overloads of a single method.
  *
  * Params:
+ *     Call = Call interface (mock or stub).
  *     T = Mocked type.
  *     member = Mocked method name.
  */
-private struct ExpectationSetup(T, string member)
+private struct ExpectationSetup(alias Call, T, string member)
 {
     enum string name = member;
 
     enum bool isVirtualMethod(alias F) = __traits(isVirtualMethod, F);
     alias VirtualMethods = Filter!(isVirtualMethod, __traits(getOverloads, T, member));
-    alias Overloads = staticMap!(Overload, VirtualMethods);
+    alias Overloads = staticMap!(Overload, staticMap!(Call, VirtualMethods));
 
     Overloads overloads;
 }
@@ -701,9 +757,11 @@ if (isPolymorphicType!T)
     alias allMembers = __traits(allMembers, T);
     alias VirtualMethods = Filter!(isVirtualMethod, allMembers);
 
-    struct Configuration
+    struct MockSetup
     {
-        alias Methods = staticMap!(ApplyLeft!(ExpectationSetup, T), VirtualMethods);
+        alias Methods = staticMap!(ApplyLeft!(ExpectationSetup, MockCall, T), VirtualMethods);
+        alias Type = T;
+        enum string code = mockCode;
 
         Methods methods;
         private size_t lastCall_;
@@ -716,26 +774,52 @@ if (isPolymorphicType!T)
         }
     }
 
-    struct Repository
+    struct StubSetup
     {
-        Configuration expectationTuple;
+        alias Methods = staticMap!(ApplyLeft!(ExpectationSetup, StubCall, T), VirtualMethods);
+        alias Type = T;
+        enum string code = stubCode;
+        Methods methods;
+    }
+
+    struct Mock
+    {
+        MockSetup expectationTuple;
 
         static foreach (i, member; VirtualMethods)
         {
-            static foreach (j, overload; Configuration.Methods[i].Overloads)
+            static foreach (j, overload; expectationTuple.Methods[i].Overloads)
             {
-                mixin(format!repositoryProperty(member, i, j));
+                mixin(format!mockProperty(member, i, j));
             }
 
-            static if (!anySatisfy!(hasNoArguments, Configuration.Methods[i].Overloads))
+            static if (!anySatisfy!(hasNoArguments, expectationTuple.Methods[i].Overloads))
             {
-                mixin(format!repositoryProperty0(member, i));
+                mixin(format!mockProperty0(member, i));
+            }
+        }
+    }
+
+    struct Stub
+    {
+        StubSetup expectationTuple;
+
+        static foreach (i, member; VirtualMethods)
+        {
+            static foreach (j, overload; expectationTuple.Methods[i].Overloads)
+            {
+                mixin(format!stubProperty(member, i, j));
+            }
+
+            static if (!anySatisfy!(hasNoArguments, expectationTuple.Methods[i].Overloads))
+            {
+                mixin(format!stubProperty0(member, i));
             }
         }
     }
 }
 
-private enum string repositoryProperty0 = q{
+private enum string mockProperty0 = q{
     ref auto %1$s(Args...)()
     {
         static if (Args.length == 0)
@@ -744,24 +828,67 @@ private enum string repositoryProperty0 = q{
         }
         else
         {
-            enum ptrdiff_t index = matchArguments!(Pack!Args, Configuration.Methods[%2$s].Overloads);
+            enum ptrdiff_t index = matchArguments!(Pack!Args, expectationTuple.Methods[%2$s].Overloads);
         }
         static assert(index >= 0,
                 "%1$s overload with the given argument types could not be found");
 
         this.expectationTuple.methods[%2$s].overloads[index].calls ~=
-            Configuration.Methods[%2$s].Overloads[index].Call(this.expectationTuple.lastCall);
+            this.expectationTuple.Methods[%2$s].Overloads[index].Call(this.expectationTuple.lastCall);
         return this.expectationTuple.methods[%2$s].overloads[index].back;
     }
 };
 
-private enum string repositoryProperty = q{
+private enum string mockProperty = q{
     ref auto %1$s(overload.Parameters arguments)
     {
         this.expectationTuple.methods[%2$s].overloads[%3$s].calls ~=
             overload.Call(this.expectationTuple.lastCall);
         this.expectationTuple.methods[%2$s].overloads[%3$s].back.arguments = arguments;
         return this.expectationTuple.methods[%2$s].overloads[%3$s].back;
+    }
+};
+
+private enum string stubProperty = q{
+    ref auto %1$s(overload.Parameters arguments)
+    {
+        foreach (ref call; this.expectationTuple.methods[%2$s].overloads[%3$s])
+        {
+            if (!call.arguments.isNull && call.arguments.get == tuple(arguments))
+            {
+                return call;
+            }
+        }
+        this.expectationTuple.methods[%2$s].overloads[%3$s].calls ~= overload.Call();
+        this.expectationTuple.methods[%2$s].overloads[%3$s].back.arguments = arguments;
+        return this.expectationTuple.methods[%2$s].overloads[%3$s].back;
+    }
+};
+
+private enum string stubProperty0 = q{
+    ref auto %1$s(Args...)()
+    {
+        static if (Args.length == 0)
+        {
+            enum ptrdiff_t index = 0;
+        }
+        else
+        {
+            enum ptrdiff_t index = matchArguments!(Pack!Args, expectationTuple.Methods[%2$s].Overloads);
+        }
+        static assert(index >= 0,
+                "%1$s overload with the given argument types could not be found");
+
+        if (this.expectationTuple.methods[%2$s].overloads[index].calls.empty)
+        {
+            this.expectationTuple.methods[%2$s].overloads[index].calls ~=
+                this.expectationTuple.Methods[%2$s].Overloads[index].Call();
+            return this.expectationTuple.methods[%2$s].overloads[index].back;
+        }
+        else
+        {
+            return this.expectationTuple.methods[%2$s].overloads[index].calls.back;
+        }
     }
 };
 
@@ -795,8 +922,6 @@ private enum bool hasNoArguments(T) = T.Parameters.length == 0;
  */
 abstract class Builder(T)
 {
-    protected Repository!T* repository;
-
     /// Mocked object instance.
     protected T mock;
 
@@ -806,11 +931,10 @@ abstract class Builder(T)
      * Params:
      *     mock = Mocked object.
      */
-    this(T mock, ref Repository!T repository)
+    this(T mock)
     in (mock !is null)
     {
         this.mock = mock;
-        this.repository = &repository;
     }
 
     /**
@@ -851,26 +975,27 @@ abstract class Builder(T)
     }
 }
 
-private mixin template NestedMock(T, Options, string overloadingCode, Args...)
+private mixin template NestedMock(Repository, Options, Args...)
 {
-    final class Mock : T
+    final class Mock : Repository.expectationTuple.Type
     {
         import std.string : join;
 
-        private Repository!T expectationSetup;
+        private Repository expectationSetup;
 
-        static if (__traits(hasMember, T, "__ctor") && Args.length > 0)
+        static if (__traits(hasMember, Repository.expectationTuple.Type, "__ctor")
+                && Args.length > 0)
         {
             this(ref Args args)
             {
                 super(args);
             }
         }
-        else static if (__traits(hasMember, T, "__ctor"))
+        else static if (__traits(hasMember, Repository.expectationTuple.Type, "__ctor"))
         {
             this()
             {
-                super(Parameters!(T.__ctor).init);
+                super(Parameters!(Repository.expectationTuple.Type.__ctor).init);
             }
         }
 
@@ -881,7 +1006,7 @@ private mixin template NestedMock(T, Options, string overloadingCode, Args...)
                 mixin(["override", Overload.qualifiers, "Overload.Return", expectation.name].join(" ") ~ q{
                     (Overload.ParameterTypes arguments)
                     {
-                        mixin(overloadingCode);
+                        mixin(Repository.expectationTuple.code);
                     }
                 });
             }

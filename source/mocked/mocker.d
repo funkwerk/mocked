@@ -852,16 +852,26 @@ private enum string mockProperty = q{
 private enum string stubProperty = q{
     ref auto %1$s(overload.Parameters arguments)
     {
-        foreach (ref call; this.expectationTuple.methods[%2$s].overloads[%3$s])
-        {
-            if (!call.arguments.isNull && call.arguments.get == tuple(arguments))
+        /**
+         * Why is this a nested function?
+         * Due to the `__parameters` hack used to form `overload.Parameters`,
+         * the individual parameter names of the overload - *not* just `arguments`! -
+         * are also valid in this scope and may introduce identifier collisions
+         * with `call`.
+         * Sidestep this by opening a new function.
+         */
+        return delegate ref(){
+            foreach (ref call; this.expectationTuple.methods[%2$s].overloads[%3$s])
             {
-                return call;
+                if (!call.arguments.isNull && call.arguments.get == tuple(arguments))
+                {
+                    return call;
+                }
             }
-        }
-        this.expectationTuple.methods[%2$s].overloads[%3$s].calls ~= overload.Call();
-        this.expectationTuple.methods[%2$s].overloads[%3$s].back.arguments = arguments;
-        return this.expectationTuple.methods[%2$s].overloads[%3$s].back;
+            this.expectationTuple.methods[%2$s].overloads[%3$s].calls ~= overload.Call();
+            this.expectationTuple.methods[%2$s].overloads[%3$s].back.arguments = arguments;
+            return this.expectationTuple.methods[%2$s].overloads[%3$s].back;
+        }();
     }
 };
 

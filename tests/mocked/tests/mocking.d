@@ -454,3 +454,16 @@ unittest
     static assert(is(typeof(Mocker().mock!Dependency())));
     static assert(is(typeof(Mocker().stub!Dependency())));
 }
+
+@("mocks method with a parameter called 'call'")
+unittest
+{
+    static class Dependency
+    {
+        void foo(int call)
+        {
+        }
+    }
+    Mocker().mock!Dependency();
+    static assert(is(typeof(Mocker().stub!Dependency())));
+}

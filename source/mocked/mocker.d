@@ -143,14 +143,7 @@ private enum string stubCode = q{
     }
     if (match.empty)
     {
-        static if (is(Overload.Return == void))
-        {
-            return;
-        }
-        else
-        {
-            return Overload.Return.init;
-        }
+        throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
     }
 
     static if (is(Overload.Return == void))

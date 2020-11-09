@@ -2,6 +2,7 @@ module mocked.tests.stub;
 
 import dshould;
 import mocked;
+import unit_threaded.attrs : ShouldFail;
 
 @("class can be stubbed")
 unittest
@@ -147,7 +148,7 @@ unittest
     builder.get.translate("latin").should.equal("in mente");
 }
 
-@("defaults to .init")
+@ShouldFail("throws if nothing matches")
 unittest
 {
     static class Dependency
@@ -161,19 +162,4 @@ unittest
     auto builder = mocker.stub!Dependency;
 
     builder.get.translate.should.be(null);
-}
-
-@("returns early if nothing matches")
-unittest
-{
-    static class Dependency
-    {
-        void translate()
-        {
-        }
-    }
-    Mocker mocker;
-    auto builder = mocker.stub!Dependency;
-
-    builder.get.translate;
 }

@@ -382,7 +382,24 @@ unittest
         {
         }
     }
-   static assert(is(typeof(Mocker().mock!Dependency())));
+    static assert(is(typeof(Mocker().mock!Dependency())));
+}
+
+@("supports immutable struct as return value")
+unittest
+{
+    static immutable struct S
+    {
+        private string s;
+    }
+    static class Dependency
+    {
+        S method()
+        {
+            return S("");
+        }
+    }
+    static assert(is(typeof(Mocker().mock!Dependency())));
 }
 
 @("supports default parameters")

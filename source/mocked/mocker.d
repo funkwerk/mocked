@@ -444,9 +444,12 @@ mixin template Call(alias F)
          *
          * Returns: $(D_KEYWORD this).
          */
-        public ref typeof(this) returns(Return value)
+        public ref typeof(this) returns(Return value) @trusted
         {
-            move(value, this.return_);
+            import core.stdc.string : memcpy;
+
+            // discard possible immutable
+            memcpy(cast(void*) &this.return_, cast(void*) &value, Return.sizeof);
 
             return this;
         }

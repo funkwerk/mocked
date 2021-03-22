@@ -15,15 +15,9 @@ import std.traits;
  * Params:
  *     F = The actual comparator.
  */
-struct Comparator(F...)
-if (F.length == 1
-    && isCallable!(F[0])
-    && is(ReturnType!F == bool)
-    && allSameType!(Parameters!F)
-    && Parameters!F.length == 2)
+struct Comparator(alias F)
 {
-    private alias T = Parameters!F[0];
-    private alias compare = F[0];
+    private alias compare = F;
 }
 
 /**
@@ -34,6 +28,21 @@ if (F.length == 1
  */
 struct Options(Args...)
 {
+    static foreach (Arg; Args)
+    {
+        /**
+         * Overloaded, configurable method that tests whether $(D_PARAM a) is
+         * equal to $(D_PARAM b).
+         *
+         * Params:
+         *     a = Left-hand side operand.
+         *     b = Right-hand side operand.
+         *
+         * Returns: $(D_KEYWORD true) if `a == b`, $(D_KEYWORD false) otherwise.
+         */
+        alias compare = Arg.compare;
+    }
+
     /**
      * Fallback method that tests whether $(D_PARAM a) is equal to $(D_PARAM b).
      * It simply does $(D_KEYWORD ==) comparison.
@@ -46,24 +55,13 @@ struct Options(Args...)
      */
     bool equal(T)(T a, T b)
     {
-        return a == b;
-    }
-
-    static foreach (Arg; Args)
-    {
-        /**
-         * Overloaded, configurable method that tests whether $(D_PARAM a) is
-         * equal to $(D_PARAM b).
-         *
-         * Params:
-         *     a = Left-hand side operand. 
-         *     b = Right-hand side operand.
-         *
-         * Returns: $(D_KEYWORD true) if `a == b`, $(D_KEYWORD false) otherwise.
-         */
-        bool equal(Arg.T a, Arg.T b)
+        static if (__traits(compiles, compare(a, b)))
         {
-            return Arg.compare(a, b);
+            return compare(a, b);
+        }
+        else
+        {
+            return a == b;
         }
     }
 }

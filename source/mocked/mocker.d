@@ -120,7 +120,7 @@ private enum string mockCode = q{
     }
 };
 
-private auto getExpectationTuple(T)(ref T expectationSetup)
+private auto getExpectationTuple(T)(ref T expectationSetup) @trusted
 {
     alias R = typeof(cast() typeof(expectationSetup.expectationTuple).init)*;
 

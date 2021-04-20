@@ -484,3 +484,18 @@ unittest
     Mocker().mock!Dependency();
     static assert(is(typeof(Mocker().stub!Dependency())));
 }
+
+@("mocks interfaces with const @safe methods")
+unittest
+{
+    interface Test
+    {
+        int value() const @safe;
+    }
+
+    Mocker mocker;
+    auto mock = mocker.mock!Test;
+    mock.expect.value().returns(5);
+
+    assert(mock.value() == 5);
+}

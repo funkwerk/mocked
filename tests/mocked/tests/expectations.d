@@ -334,3 +334,22 @@ unittest
     mock.get.callFirst(2);
     mock.get.callFirst(1);
 }
+
+@("repeats expectations without setting arguments")
+unittest
+{
+    interface Observer
+    {
+        void call(string);
+    }
+    Mocker mocker;
+    auto observer = mocker.mock!Observer;
+
+    observer.expect.call.repeat(2);
+
+    observer.get.call("");
+
+    mocker.verify
+        .should.throwAn!ExpectationViolationException
+        .where.msg.should.be(`Expected method not called: Observer.call`);
+}

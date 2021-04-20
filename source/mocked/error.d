@@ -261,17 +261,20 @@ ExpectationViolationException expectationViolationException(T, MaybeArgs)(
     auto writer = appender!(char[])();
     auto spec = singleSpec("%s");
 
-    static foreach (i; 0 .. MaybeArgs.length)
+    if (!arguments.isNull)
     {
-        static if (isSomeString!(MaybeArgs.Types[i]))
+        static foreach (i; 0 .. MaybeArgs.length)
         {
-            formattedArguments ~= format!"%(%s %)"([arguments.get!i]);
-        }
-        else
-        {
-            writer.clear();
-            writer.formatValue(arguments.get!i, spec);
-            formattedArguments ~= writer[].idup;
+            static if (isSomeString!(MaybeArgs.Types[i]))
+            {
+                formattedArguments ~= format!"%(%s %)"([arguments.get!i]);
+            }
+            else
+            {
+                writer.clear();
+                writer.formatValue(arguments.get!i, spec);
+                formattedArguments ~= writer[].idup;
+            }
         }
     }
     
@@ -305,7 +308,9 @@ final class ExpectationViolationException : Exception
         this.name = name;
         this.arguments = arguments;
 
-        const message = format!"Expected method not called: %s(%-(%s, %))"(this.name, this.arguments);
+        const message = this.arguments is null
+            ? format!"Expected method not called: %s"(this.name)
+            : format!"Expected method not called: %s(%-(%s, %))"(this.name, this.arguments);
 
         super(message, file, line, nextInChain);
     }

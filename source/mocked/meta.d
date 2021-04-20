@@ -49,8 +49,9 @@ struct Maybe(Arguments...)
      */
     public @property ref Arguments[n] get(size_t n)()
     if (n < Arguments.length)
-    in (!isNull())
     {
+        import std.exception : enforce;
+        enforce(!isNull());
         return this.arguments_[n];
     }
 

@@ -353,3 +353,24 @@ unittest
         .should.throwAn!ExpectationViolationException
         .where.msg.should.be(`Expected method not called: Observer.call`);
 }
+
+@("fails on an unexpected call after .repeatAny()")
+unittest
+{
+    interface Observer
+    {
+        void call(string);
+    }
+    Mocker mocker;
+    auto observer = mocker.mock!Observer;
+
+    observer.expect.call.repeatAny;
+
+    observer.expect.call("A");
+
+    observer.get.call("B");
+
+    mocker.verify
+        .should.throwAn!ExpectationViolationException
+        .where.msg.should.be(`Expected method not called: Observer.call("A")`);
+}

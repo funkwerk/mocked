@@ -7,6 +7,7 @@ import std.algorithm;
 import std.array;
 import std.container.dlist;
 import std.conv;
+import std.exception;
 import std.format : format;
 import std.meta;
 import std.traits;
@@ -331,11 +332,10 @@ final class Mocked(T) : Builder!T, Verifiable
         {
             static foreach (j, Overload; expectation.Overloads)
             {
-                if (!this.expect.expectationTuple.methods[i].overloads[j].empty
-                        && this.expect.expectationTuple.methods[i].overloads[j].front.repeat_ > 0)
+                foreach (ref call; this.expect.expectationTuple.methods[i].overloads[j])
                 {
-                    throw expectationViolationException!T(expectation.name,
-                            this.expect.expectationTuple.methods[i].overloads[j].front.arguments);
+                    enforce(call.repeat_ <= 0,
+                        expectationViolationException!T(expectation.name, call.arguments));
                 }
             }
         }

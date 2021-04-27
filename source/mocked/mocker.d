@@ -10,6 +10,7 @@ import std.conv;
 import std.exception;
 import std.format : format;
 import std.meta;
+import std.range : drop;
 import std.traits;
 import std.typecons;
 
@@ -27,24 +28,74 @@ interface Verifiable
     void verify();
 }
 
+private template findMatchIndex(Options, Call, ExpectationTuple, Arguments...)
+{
+    alias Pair = Tuple!(size_t, "index", bool, "matched");
+    alias T = Nullable!Pair;
+
+    /*
+     * This function tries to find the best match for a function with the given
+     * arguments. If the expectations are ordered, it can modify the
+     * expectation chain; it will remove .repeatAny() calls if it can find a
+     * better match after them.
+     */
+    T findMatchIndex(ref Call[] calls,
+            ref ExpectationTuple expectationTuple, ref Arguments arguments,
+            size_t startIndex)
+    {
+        auto withComparedArguments = calls
+            .drop(startIndex)
+            .map!(call => tuple(call, call.compareArguments!Options(arguments)));
+
+        const relativeIndex = withComparedArguments
+            .countUntil!(call => expectationTuple.ordered || call[1]);
+        if (relativeIndex == -1)
+        {
+            return T();
+        }
+        const size_t absoluteIndex = startIndex + relativeIndex;
+        auto matchAtIndex = nullable(Pair(absoluteIndex, withComparedArguments[relativeIndex][1]));
+        if (calls[absoluteIndex].repeat_ != 0)
+        {
+            return matchAtIndex;
+        }
+
+        const secondTry = findMatchIndex!(Options, Call, ExpectationTuple, Arguments)(
+                calls, expectationTuple, arguments, absoluteIndex + 1);
+
+        if (secondTry.isNull || !secondTry.get.matched)
+        {
+            return matchAtIndex;
+        }
+        else if (expectationTuple.ordered)
+        {
+            ++expectationTuple.actualCall;
+            calls = calls.remove(absoluteIndex);
+
+            return T(Pair(secondTry.get.index - 1, secondTry.get.matched));
+        }
+        else
+        {
+            return secondTry;
+        }
+    }
+}
+
 private enum string mockCode = q{
     auto expectationTuple = getExpectationTuple(expectationSetup);
     auto overloads = &expectationTuple.methods[j].overloads[i];
 
-    const matchAtIndex = (*overloads).countUntil!(call =>
-            (expectationTuple.ordered && call.repeat_ != 0)
-                || call.compareArguments!Options(arguments)
-    );
+    const matchAtIndex = findMatchIndex!Options(overloads.calls,
+            expectationTuple, arguments, 0);
 
-    if (matchAtIndex == -1)
+    if (matchAtIndex.isNull)
     {
         throw unexpectedCallError!(typeof(super), Overload.ParameterTypes)(expectation.name, arguments);
     }
-    expectationTuple.actualCall += matchAtIndex;
-    auto matchedElement = &overloads.calls[matchAtIndex];
+    expectationTuple.actualCall += matchAtIndex.get.index;
+    auto matchedElement = &overloads.calls[matchAtIndex.get.index];
 
-    if (matchedElement.repeat_ > 0
-            && !matchedElement.compareArguments!Options(arguments))
+    if (matchedElement.repeat_ > 0 && !matchAtIndex.get.matched)
     {
         auto overloadArguments = matchedElement.arguments;
 
@@ -73,8 +124,7 @@ private enum string mockCode = q{
         }
         else if (matchedElement.repeat_ == 1)
         {
-            overloads.calls = overloads.calls[0 .. matchAtIndex]
-                ~ overloads.calls[matchAtIndex + 1 .. $];
+            overloads.calls = overloads.calls.remove(matchAtIndex.get.index);
         }
     }
 

@@ -374,3 +374,91 @@ unittest
         .should.throwAn!ExpectationViolationException
         .where.msg.should.be(`Expected method not called: Observer.call("A")`);
 }
+
+@("respects expectations with other arguments after .repeatAny()")
+unittest
+{
+    interface Observer
+    {
+        void call(int);
+    }
+    /* {
+        Mocker mocker;
+        auto observer = mocker.mock!Observer;
+
+        observer.expect.call.repeat(1);
+        observer.get.call(0);
+
+        observer.expect.call(1);
+        observer.get.call(1);
+    } */
+    {
+        Mocker mocker;
+        auto observer = mocker.mock!Observer;
+
+        observer.expect.call.repeatAny;
+        observer.get.call(0);
+
+        observer.expect.call(1);
+        observer.get.call(1);
+    }
+}
+
+@("skips .repeatAny() on a better match")
+@ShouldFail
+unittest
+{
+    interface Observer
+    {
+        void call(int);
+    }
+
+    Mocker mocker;
+    auto observer = mocker.mock!Observer;
+
+    observer.expect.call.repeatAny;
+
+    observer.expect.call(1);
+    observer.get.call(1);
+
+    observer.get.call(2);
+}
+
+@("skips .repeatAny() with arguments on a better match")
+@ShouldFail
+unittest
+{
+    interface Observer
+    {
+        void call(int);
+    }
+
+    Mocker mocker;
+    auto observer = mocker.mock!Observer;
+
+    observer.expect.call(2).repeatAny;
+
+    observer.expect.call(1);
+    observer.get.call(1);
+
+    observer.get.call(2);
+}
+
+@("matches expectations without arguments in order")
+unittest
+{
+    interface Observer
+    {
+        void call(int);
+    }
+
+    Mocker mocker;
+    auto observer = mocker.mock!Observer;
+
+    observer.expect.call;
+    observer.expect.call(2);
+
+    observer.get.call(2);
+    observer.get.call(1)
+        .should.throwAn!UnexpectedArgumentError;
+}

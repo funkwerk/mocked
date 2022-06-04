@@ -210,18 +210,18 @@ assert(mock.toString() == expected);
 ### Custom argument comparator
 
 You can provide a function, which will be used to compare two objects of a
-specific type. Use `configure` instead of the `Mocker` to create a custom mocker
-instance. `configure` takes a tuple of `Comparator`s, so you can specify as many
+specific type.
+Use `Configure` instead of the `Mocker` to create a custom mocker instance.
+`Configure` takes a tuple of "comparators", so you can specify as many
 comparators as you like, but they aren't allowed to conflict, so the types in
 question should be distinct types.
 
-Every `Comparator` has a single template parameter which is a function actually
-used for the comparison. This function should have exactly two arguments of the
-same type and return a boolean value.
+Every "comparator" is a function actually used for the comparison.
+This function should have exactly two arguments of the same type and return a boolean value.
 
 ```d
 import mocked;
-import std.math : fabs;
+import std.math : abs;
 
 class Dependency
 {
@@ -233,9 +233,9 @@ class Dependency
 // This function is used to compare two floating point numbers that don't
 // match exactly.
 alias approxComparator = (float a, float b) {
-    return fabs(a - b) <= 0.1;
+    return abs(a - b) <= 0.1;
 };
-auto mocker = configure!(Comparator!approxComparator);
+Configure!approxComparator mocker;
 auto builder = mocker.mock!Dependency;
 
 builder.expect.call(1.01);

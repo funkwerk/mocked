@@ -260,6 +260,9 @@ auto configure(Args...)()
     return Factory!(Options!Args)();
 }
 
+/// ditto
+alias Configure(Args...) = Factory!(Options!(staticMap!(Comparator, Args)));
+
 /**
  * A class through which one creates mock objects and manages expectations
  * about calls to their methods.

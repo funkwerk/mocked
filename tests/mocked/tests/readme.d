@@ -27,7 +27,7 @@ unittest
 
 unittest
 {
-    import std.math : fabs;
+    import std.math : abs;
 
     static class Dependency
     {
@@ -39,9 +39,9 @@ unittest
     // This function is used to compare two floating point numbers that don't
     // match exactly.
     alias approxComparator = (float a, float b) {
-        return fabs(a - b) <= 0.1;
+        return abs(a - b) <= 0.1;
     };
-    auto mocker = configure!(Comparator!approxComparator);
+    Configure!approxComparator mocker;
     auto builder = mocker.mock!Dependency;
 
     builder.expect.call(1.01);

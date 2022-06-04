@@ -53,7 +53,7 @@ unittest
 @("can use custom comparator")
 unittest
 {
-    import std.math : fabs;
+    import std.math : abs;
 
     static class Dependency
     {
@@ -64,7 +64,7 @@ unittest
     }
 
     alias approxComparator = (float a, float b) {
-        return fabs(a - b) <= 0.1;
+        return abs(a - b) <= 0.1;
     };
     auto mocker = configure!(Comparator!approxComparator);
     auto builder = mocker.stub!Dependency;
@@ -74,6 +74,42 @@ unittest
     auto stub = builder.get;
 
     stub.call(1.02).should.be(true);
+}
+
+@("can configure custom comparator with type")
+unittest
+{
+    import std.math : abs;
+
+    static class Dependency
+    {
+        public bool call(float)
+        {
+            return false;
+        }
+
+        public bool call(int)
+        {
+            return false;
+        }
+    }
+
+    alias approxComparator = (float a, float b) {
+        return abs(a - b) <= 0.1;
+    };
+    alias absComparator = (int a, int b) {
+        return abs(a) == abs(b);
+    };
+    Configure!(approxComparator, absComparator) mocker;
+    auto builder = mocker.stub!Dependency;
+
+    builder.stub.call(1.01).returns(true);
+    builder.stub.call(-1).returns(true);
+
+    auto stub = builder.get;
+
+    stub.call(1.02).should.be(true);
+    stub.call(1).should.be(true);
 }
 
 @("stubs const methods")

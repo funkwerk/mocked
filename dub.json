@@ -20,8 +20,8 @@
 			],
 			"mainSourceFile": "tests/app.d",
 			"dependencies": {
-				"dshould": ">=1.4.3",
-				"unit-threaded": ">=1.0.11"
+				"dshould": ">=1.5.1",
+				"unit-threaded": ">=1.1.0"
 			}
 		}
 	]

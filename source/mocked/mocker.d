@@ -899,7 +899,7 @@ private enum string mockProperty = q{
 };
 
 private enum string stubProperty = q{
-    ref auto %1$s(overload.Parameters arguments)
+    ref auto %1$s(overload.Parameters arguments) return
     {
         /**
          * Why is this a nested function?
@@ -909,12 +909,12 @@ private enum string stubProperty = q{
          * with `call`.
          * Sidestep this by opening a new function.
          */
-        return delegate ref(){
-            foreach (ref call; this.expectationTuple.methods[%2$s].overloads[%3$s])
+        return delegate ref() return {
+            foreach (i, call; this.expectationTuple.methods[%2$s].overloads[%3$s].calls)
             {
                 if (!call.arguments.isNull && call.arguments.get == tuple(arguments))
                 {
-                    return call;
+                    return this.expectationTuple.methods[%2$s].overloads[%3$s].calls[i];
                 }
             }
             this.expectationTuple.methods[%2$s].overloads[%3$s].calls ~= overload.Call();

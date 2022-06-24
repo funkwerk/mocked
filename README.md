@@ -185,6 +185,39 @@ mock.get.setFlag(true);
 assert(flag);
 ```
 
+#### Warning
+
+Be aware that actions are called after they are set, so if an action is a closure
+and it carries some context that changes at a later point of time,
+it can lead to surprising behavior.
+
+Consider the following example:
+
+```d
+class Dependency
+{
+    void setFlag(bool flag)
+    {
+    }
+}
+
+Mocker mocker;
+auto mock = mocker.mock!Dependency;
+
+foreach (action; [true, false])
+{
+    mock.expect.setFlag.action((value) { assert(action == value); });
+}
+
+mock.get.setFlag(true);
+mock.get.setFlag(false);
+```
+
+The assertion inside the action will fail,
+because `value` after the loop always equals to the last element of the array, `false`.
+In this case `static foreach` can be used instead to avoid this effect,
+since `static foreach` generates code and `value` in `static foreach` is not a variable, but a manifest constant.
+
 ### repeat/repeatAny
 
 This expectation will match exactly `n` times or any number of calls,

@@ -1,6 +1,7 @@
 module mocked.tests.readme;
 
 import mocked;
+import unit_threaded.attrs : ShouldFail;
 
 unittest
 {
@@ -104,6 +105,28 @@ unittest
     mock.get.setFlag(true);
 
     assert(flag);
+}
+
+@ShouldFail("See warning in the action section in the README")
+unittest
+{
+    static class Dependency
+    {
+        void setFlag(bool flag)
+        {
+        }
+    }
+
+    Mocker mocker;
+    auto mock = mocker.mock!Dependency;
+
+    foreach (action; [true, false])
+    {
+        mock.expect.setFlag.action((value) { assert(action == value); });
+    }
+
+    mock.get.setFlag(true);
+    mock.get.setFlag(false);
 }
 
 unittest
